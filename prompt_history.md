@@ -825,4 +825,62 @@ Updated this file (`prompt_history.md`) with all prompts from this session.
 
 ---
 
+```
+Create the file: .github/workflows/deploy.yml
+```
+Created `.github/workflows/deploy.yml` with a GitHub Actions workflow triggering on push to `main`: installs deps, builds, configures git identity, and deploys via `npm run deploy` (gh-pages) with `GITHUB_TOKEN` for push access.
+
+---
+
+```
+the contents of that file should be:
+name: Deploy Vite + React app to GitHub Pages
+...
+```
+Replaced file contents with the exact YAML provided by the user.
+
+---
+
+```
+run this: git add .github/workflows/deploy.yml
+git commit -m "Add GitHub Pages deploy workflow"
+git push origin main
+```
+Staged, committed, and pushed the workflow file to `main`.
+
+---
+
+```
+When I use the deploy action I configured for github pages I am getting the following error,
+why? ... ProcessError: Author identity unknown
+```
+Diagnosed: `gh-pages` needs a git identity to author the commit it pushes to the `gh-pages` branch — the runner has none by default. Added a `Configure git identity` step with `git config --global user.email/user.name` using the standard `github-actions[bot]` identity. Committed and pushed.
+
+---
+
+```
+now I am getting this error in the action: ... fatal: could not read Username for
+'https://github.com': No such device or address
+```
+Diagnosed: `gh-pages` uses the `origin` remote URL directly to push, so the `GITHUB_TOKEN` env var alone isn't enough — the token must be embedded in the remote URL. Added `git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git` to the git config step. Committed and pushed.
+
+---
+
+```
+there is something wrong with my deployment on github pages. Maybe I am missing some env
+variables? When I click the login button on the github pages deployment it tries to access
+this url: "https://tapnair.github.io/fusion-data-demo-v3/undefined?...client_id=undefined..."
+```
+Diagnosed: `.env.production` only had `VITE_REDIRECT_URI`; all other `VITE_*` vars were undefined at build time. Added `VITE_AUTH_URL`, `VITE_TOKEN_URL`, `VITE_SCOPE`, and `VITE_GRAPHQL_ENDPOINT` (all public, non-secret values) to `.env.production`. Updated workflow to inject `VITE_CLIENT_ID` from a GitHub Actions secret. Removed `.env.production` from `.gitignore` so it can be tracked. Committed and pushed. User must add `VITE_CLIENT_ID` as a repository secret in GitHub Actions settings.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. FOllow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
 *Generated: 2026-03-03*
