@@ -19,6 +19,9 @@ export const typePolicies: TypePolicies = {
   DrawingItem: { keyFields: ['id'] },
   BasicItem:  { keyFields: ['id'] },
   ConfiguredDesignItem: { keyFields: ['id'] },
+  Component:   { keyFields: ['id'], fields: { bomRelations: pagedField(['depth']) } },
+  BOMRelation: { keyFields: ['id'] },
+  Model:       { keyFields: ['id'] },
 
   // --- Non-entity (embedded) types ---
   // No stable identity; merge inline without normalization.

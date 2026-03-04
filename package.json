@@ -34,6 +34,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.8",
     "@mui/material": "^7.3.8",
+    "@mui/x-data-grid": "^8.27.3",
     "@mui/x-tree-view": "^8.27.2",
     "axios": "^1.13.6",
     "graphql": "^16.13.0",

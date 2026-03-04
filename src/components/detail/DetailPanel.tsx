@@ -8,7 +8,7 @@ import { ProjectDetail } from './ProjectDetail'
 import { FolderDetail } from './FolderDetail'
 import { ItemDetail } from './ItemDetail'
 import { UsersTab } from './tabs/UsersTab'
-import { BomTab } from './tabs/BomTab'
+import { BomTab } from './tabs/bom/BomTab'
 import { ViewTab } from './tabs/ViewTab'
 
 type TabKey = 'details' | 'users' | 'bom' | 'view'
@@ -117,7 +117,7 @@ export function DetailPanel() {
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'bom'} sx={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 'bom' && <BomTab />}
+        {activeTab === 'bom' && <BomTab node={selectedNode} />}
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'view'} sx={{ flex: 1, overflow: 'auto' }}>
