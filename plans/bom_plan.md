@@ -10,12 +10,16 @@ Implement a progressive, expandable Bill of Materials tree inside the BOM tab fo
 
 ### Traversal path
 
+The BOM tab does **not** re-traverse the item → model → component path. Instead it reads the component ID from the Apollo cache entry already populated by `ItemDetail` (`GET_ITEM_DETAIL` → `tipRootModel.component.id`), then queries the component directly:
+
 ```
-DesignItem.tipRootModel              → Model
-  └─ Model.component(composition: WORKING)  → Component   (root of BOM)
-       └─ Component.bomRelations(depth: 1)  → BOMRelations
-            └─ BOMRelation.toComponent      → Component   (child)
-                 └─ Component.bomRelations(depth: 1)  → (next level, loaded on expand)
+Apollo cache (GET_ITEM_DETAIL)
+  └─ DesignItem.tipRootModel.component.id  → componentId
+
+GET_ROOT_COMPONENT_BOM(componentId, composition: WORKING)
+  └─ Component.bomRelations(depth: 1)    → BOMRelations
+       └─ BOMRelation.toComponent        → Component   (child)
+            └─ GET_COMPONENT_BOM_CHILDREN(componentId, state)  → (next level, loaded on expand)
 ```
 
 ### Key fields used
@@ -41,41 +45,32 @@ DesignItem.tipRootModel              → Model
 
 ## GraphQL Queries
 
-### `GET_ITEM_BOM` — initial load
-Fetch root component + its first-level children from the `DesignItem`.
+### `GET_ROOT_COMPONENT_BOM` — initial load
+Fetches the root component directly by component ID using `composition: WORKING`. The component ID is read from the Apollo cache entry for `GET_ITEM_DETAIL` (already fetched by `ItemDetail`); if not cached, `GET_ITEM_DETAIL` is fetched first. This avoids re-traversing the item → model → component path.
 
 ```graphql
-query GetItemBom($hubId: ID!, $itemId: ID!, $pagination: PaginationInput) {
-  item(hubId: $hubId, itemId: $itemId) {
-    __typename
-    ... on DesignItem {
-      tipRootModel {
-        component {
+query GetRootComponentBom($componentId: ID!, $pagination: PaginationInput) {
+  component(componentId: $componentId, composition: WORKING) {
+    id
+    name { value }
+    partNumber { value }
+    description { value }
+    materialName { value }
+    hasChildren
+    bomRelations(depth: 1, pagination: $pagination) {
+      pagination { cursor pageSize }
+      results {
+        id
+        sequenceNumber
+        quantityProperty { value }
+        toComponentState
+        toComponent {
           id
           name { value }
           partNumber { value }
           description { value }
           materialName { value }
           hasChildren
-          thumbnail { signedUrl }
-          bomRelations(depth: 1, pagination: $pagination) {
-            pagination { cursor pageSize }
-            results {
-              id
-              sequenceNumber
-              quantityProperty { value }
-              toComponentState
-              toComponent {
-                id
-                name { value }
-                partNumber { value }
-                description { value }
-                materialName { value }
-                hasChildren
-                thumbnail { signedUrl }
-              }
-            }
-          }
         }
       }
     }
@@ -104,7 +99,6 @@ query GetComponentBomChildren($componentId: ID!, $state: String, $pagination: Pa
           description { value }
           materialName { value }
           hasChildren
-          thumbnail { signedUrl }
         }
       }
     }
@@ -166,7 +160,7 @@ export interface BomRow {
 `BomRow` interface (above).
 
 #### `src/graphql/queries/bom.ts`
-`GET_ITEM_BOM` and `GET_COMPONENT_BOM_CHILDREN` as `gql` DocumentNode constants.
+`GET_ROOT_COMPONENT_BOM` and `GET_COMPONENT_BOM_CHILDREN` as `gql` DocumentNode constants.
 
 #### `src/hooks/useBomLoader.ts`
 Manages the flat `BomRow[]` list and all expand/collapse/pagination logic.
@@ -181,7 +175,7 @@ export function useBomLoader(node: NavNode) {
   // Load root BOM on mount / node change
   useEffect(() => { loadRoot() }, [node.entityId])
 
-  // loadRoot(): fetch GET_ITEM_BOM, build root row + level-1 child rows
+  // loadRoot(): read componentId from cache, fetch GET_ROOT_COMPONENT_BOM, build root row + level-1 child rows
   // toggleRow(row): if expanding → loadChildren(); if collapsing → remove descendants
   // loadMore(row): fetch next page for an already-expanded row, append rows
 
@@ -189,7 +183,7 @@ export function useBomLoader(node: NavNode) {
 }
 ```
 
-**`loadRoot`**: queries `GET_ITEM_BOM`, builds a `BomRow` for the root `Component` at depth 0 (pre-expanded, `isExpanded: true`), then maps its `bomRelations.results` into `BomRow[]` at depth 1. The root row is always shown and always starts expanded so its children are immediately visible.
+**`loadRoot`**: reads the component ID from the Apollo cache entry for `GET_ITEM_DETAIL` (already populated by `ItemDetail`). If not yet cached, fetches `GET_ITEM_DETAIL` to obtain `tipRootModel.component.id`. Then queries `GET_ROOT_COMPONENT_BOM` with that component ID and `composition: WORKING`. Builds a `BomRow` for the root `Component` at depth 0 (pre-expanded) and maps its `bomRelations.results` into `BomRow[]` at depth 1.
 
 **`toggleRow(row)`**:
 - If `isExpanded`: set `isExpanded: false`, remove all descendant rows from the flat list (rows whose id chain leads back to `row.id`).
@@ -205,18 +199,18 @@ export function useBomLoader(node: NavNode) {
 Column registry: `BomColumnDef` interface, `BomCellContext` interface, `BOM_COLUMNS` array, `DEFAULT_VISIBLE_COLUMNS`, and `BomNameCell` render component. All future column additions go here only.
 
 #### `src/components/detail/tabs/bom/BomColumnSettings.tsx`
-Settings popover component. `ViewColumnIcon` button → `Popover` → list of `Checkbox` + label per column. Always-visible columns have disabled checkboxes. This component is used as the DataGrid `slots.toolbar` (see below).
+Standalone settings component rendered directly above the DataGrid. `ViewColumnIcon` button → `Popover` → list of `Checkbox` + label per column. Always-visible columns have disabled checkboxes. Has a bottom border separating it from the grid headers.
 
 #### `src/components/detail/tabs/bom/BomTab.tsx` *(replaces `tabs/BomTab.tsx` placeholder)*
 
 ```tsx
 export function BomTab({ node }: { node: NavNode }) {
+  const theme = useTheme()  // theme.density is WeaveDensity ('high' | 'medium' | 'low')
   const { rows, loading, error, toggleRow, loadMore } = useBomLoader(node)
   const [visibleColumnIds, setVisibleColumnIds] = useState(...)
   const cellContext: BomCellContext = useMemo(() => ({ toggleRow, loadMore }), [toggleRow, loadMore])
   const gridColumns = buildGridColumns(visibleColumnIds, cellContext)
-  const density = useWeaveDensity() // maps Weave density to DataGrid density prop
-  // DataGrid with slots.toolbar = BomColumnSettings
+  // BomColumnSettings rendered above DataGrid; density mapped from theme.density
 }
 ```
 
@@ -275,7 +269,7 @@ export interface BomColumnDef {
 
 export interface BomCellContext {
   toggleRow: (row: BomRow) => void
-  loadMore: (parentRowId: string) => void
+  loadMore: (loadMoreRow: BomRow) => void  // receives the load-more sentinel row (which carries the cursor)
 }
 ```
 
@@ -339,7 +333,7 @@ function BomNameCell({ row, ctx }: { row: BomRow; ctx: BomCellContext }) {
 }
 ```
 
-**Load-more row**: A sentinel `BomRow` with `id: 'load-more:{parentRowId}'`. Its `renderCell` in the Name column renders a "Load more…" `Button` that calls `ctx.loadMore(parentRowId)`.
+**Load-more row**: A sentinel `BomRow` with `id: 'load-more:{parentRowId}'` and `nextCursor` set to the pagination cursor. Its `renderCell` in the Name column renders a "Load more…" `Button` that calls `ctx.loadMore(row)`, passing the sentinel row itself so `useBomLoader` can read `row.nextCursor`, `row.componentId`, and `row.componentState` without any stale closure issues.
 
 ### Deriving DataGrid columns from the registry
 
@@ -362,29 +356,32 @@ const gridColumns: GridColDef[] = BOM_COLUMNS
 
 ### DataGrid configuration
 
-The DataGrid uses `slots.toolbar` for the column settings control and follows the app's current Weave density setting:
+`BomColumnSettings` is rendered as a plain component **directly above** the DataGrid inside a flex column container — not via `slots.toolbar`. This is more reliable than the toolbar slot approach.
 
 ```tsx
 // Weave density → DataGrid density mapping
+// Weave values: 'high' | 'medium' | 'low'
 const DENSITY_MAP: Record<WeaveDensity, 'compact' | 'standard' | 'comfortable'> = {
-  compact: 'compact',
+  high: 'compact',
   medium: 'standard',
-  comfortable: 'comfortable',
+  low: 'comfortable',
 }
 
-<DataGrid
-  rows={rows}
-  columns={gridColumns}
-  getRowId={(r) => r.id}
-  hideFooter
-  density={DENSITY_MAP[density]}
-  slots={{ toolbar: BomColumnSettings }}
-  slotProps={{ toolbar: { visibleColumnIds, onChange: handleColumnChange } }}
-  sx={{ border: 'none' }}
-/>
+<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+  <BomColumnSettings visibleColumnIds={visibleColumnIds} onChange={handleColumnChange} />
+  <DataGrid
+    rows={rows}
+    columns={gridColumns}
+    getRowId={(r) => r.id}
+    hideFooter
+    disableColumnMenu
+    density={DENSITY_MAP[theme.density]}
+    sx={{ border: 'none', flex: 1 }}
+  />
+</Box>
 ```
 
-`BomColumnSettings` as a toolbar renders a compact row with a `ViewColumnIcon` `IconButton` that opens a `Popover` of checkboxes. It sits inside the DataGrid's own header area above the column headers.
+The density is read from the MUI theme via `useTheme()` — `theme.density` is set by the Weave theme factory and reflects the app's current density selection.
 
 Row selection is enabled (standard DataGrid default). Clicking a row highlights it using the DataGrid's built-in selection styling — no further action is taken in this phase.
 
@@ -396,7 +393,7 @@ Rows are ordered by `sequenceNumber` within each sibling group (preserved in the
 
 ### `BomColumnSettings` component
 
-Rendered via the DataGrid's `slots.toolbar`. A small `IconButton` with `ViewColumnIcon` sits inside the DataGrid's toolbar area. Clicking it opens an MUI `Popover` listing all columns from `BOM_COLUMNS` with a `Checkbox` per column:
+A standalone MUI component rendered above the DataGrid. A small `IconButton` with `ViewColumnIcon` opens an MUI `Popover` listing all columns from `BOM_COLUMNS` with a `Checkbox` per column. Has a bottom border to visually separate it from the grid column headers.
 
 - `name` column checkbox is disabled (`alwaysVisible: true`)
 - All other columns are toggleable
@@ -434,7 +431,7 @@ Persisted to `localStorage` so the user's column choice survives page reload. Al
 
 ## Weave V3 Styling Notes
 
-- The DataGrid `density` prop follows the app's Weave density setting via a mapping: `compact → 'compact'`, `medium → 'standard'`, `comfortable → 'comfortable'`. Read the density from `AppShell`'s props (or a context/hook that exposes it).
+- The DataGrid `density` prop follows the app's Weave density setting via a mapping: `high → 'compact'`, `medium → 'standard'`, `low → 'comfortable'`. Read via `useTheme()` — `theme.density` is set by the Weave theme factory and is always current.
 - Do not set hardcoded colours — use `background.paper`, `text.secondary`, etc.
 - The DataGrid community edition picks up MUI theme overrides automatically.
 - If Weave provides a `MuiDataGrid` component override in the theme, it will apply automatically. No custom `sx` colour overrides needed.
@@ -448,7 +445,7 @@ Persisted to `localStorage` so the user's column choice survives page reload. Al
 - Create `src/types/bom.types.ts` (`BomRow` with `materialName` field)
 
 ### Phase 2 — Queries & cache policy
-- Create `src/graphql/queries/bom.ts` (`GET_ITEM_BOM`, `GET_COMPONENT_BOM_CHILDREN` — both include `materialName { value }`)
+- Create `src/graphql/queries/bom.ts` (`GET_ROOT_COMPONENT_BOM`, `GET_COMPONENT_BOM_CHILDREN` — both include `materialName { value }`)
 - Update `src/apollo/typePolicies.ts` with `Component` entity + `bomRelations` pagedField
 
 ### Phase 3 — `useBomLoader` hook
@@ -461,8 +458,8 @@ Persisted to `localStorage` so the user's column choice survives page reload. Al
 ### Phase 5 — `BomTab` component
 - Create `src/components/detail/tabs/bom/BomTab.tsx` replacing the placeholder
 - Column visibility state with `localStorage` persistence
-- Title bar with "BOM" label + `BomColumnSettings` icon button
-- DataGrid wired to registry-derived columns
+- `BomColumnSettings` rendered directly above the DataGrid (not via `slots.toolbar`)
+- DataGrid wired to registry-derived columns; density from `useTheme()`
 - Update `DetailPanel` to pass `node` prop to `<BomTab>`
 - Delete old `src/components/detail/tabs/BomTab.tsx` placeholder
 

@@ -1,11 +1,4 @@
 import React, { useState } from 'react'
-
-declare module '@mui/x-data-grid' {
-  interface ToolbarPropsOverrides {
-    visibleColumnIds: string[]
-    onChange: (ids: string[]) => void
-  }
-}
 import {
   Box,
   Typography,
@@ -41,31 +34,26 @@ export function BomColumnSettings({ visibleColumnIds, onChange }: BomColumnSetti
       ? visibleColumnIds.filter((id) => id !== colId)
       : [...visibleColumnIds, colId]
 
-    // Always keep alwaysVisible columns present
     const alwaysVisibleIds = BOM_COLUMNS.filter((c) => c.alwaysVisible).map((c) => c.id)
-    const merged = Array.from(new Set([...alwaysVisibleIds, ...next]))
-
-    onChange(merged)
+    onChange(Array.from(new Set([...alwaysVisibleIds, ...next])))
   }
 
   const open = Boolean(anchorEl)
   const popoverId = open ? 'bom-column-settings-popover' : undefined
 
   return (
-    <>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 1, py: 0.5 }}>
-        <IconButton
-          size="small"
-          aria-describedby={popoverId}
-          onClick={handleOpen}
-          aria-label="Column visibility"
-        >
-          <ViewColumnIcon fontSize="small" />
-        </IconButton>
-        <Typography variant="body2" sx={{ ml: 0.5 }}>
-          Columns
-        </Typography>
-      </Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', px: 1, py: 0.5, borderBottom: 1, borderColor: 'divider' }}>
+      <IconButton
+        size="small"
+        aria-describedby={popoverId}
+        onClick={handleOpen}
+        aria-label="Column visibility"
+      >
+        <ViewColumnIcon fontSize="small" />
+      </IconButton>
+      <Typography variant="body2" sx={{ ml: 0.5 }}>
+        Columns
+      </Typography>
 
       <Popover
         id={popoverId}
@@ -92,6 +80,6 @@ export function BomColumnSettings({ visibleColumnIds, onChange }: BomColumnSetti
           ))}
         </Box>
       </Popover>
-    </>
+    </Box>
   )
 }

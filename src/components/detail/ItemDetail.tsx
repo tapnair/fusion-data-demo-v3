@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -7,7 +7,10 @@ import {
   Alert,
   Chip,
   Link,
+  IconButton,
+  Tooltip,
 } from '@mui/material'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import DesignServicesIcon from '@mui/icons-material/DesignServices'
 import { useLazyQuery } from '@apollo/client/react'
@@ -43,6 +46,27 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function IdValue({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+        {id}
+      </Typography>
+      <Tooltip title={copied ? 'Copied!' : 'Copy'}>
+        <IconButton size="small" onClick={handleCopy}>
+          <ContentCopyIcon sx={{ fontSize: 14 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  )
 }
 
 export function ItemDetail({ node, onTypeResolved }: ItemDetailProps) {
@@ -106,6 +130,8 @@ export function ItemDetail({ node, onTypeResolved }: ItemDetailProps) {
       )}
 
       <Divider sx={{ mb: 2 }} />
+
+      <MetaRow label="Item ID" value={<IdValue id={item.id} />} />
 
       {item.size != null && (
         <MetaRow
@@ -191,6 +217,8 @@ export function ItemDetail({ node, onTypeResolved }: ItemDetailProps) {
             Component
           </Typography>
           <Divider sx={{ mb: 1.5 }} />
+          <MetaRow label="Model ID" value={<IdValue id={item.tipRootModel.id} />} />
+          <MetaRow label="Component ID" value={<IdValue id={component.id} />} />
           {component.name?.value && (
             <MetaRow
               label="Name"

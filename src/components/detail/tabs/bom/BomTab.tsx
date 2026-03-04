@@ -10,8 +10,7 @@ import type { BomCellContext } from './bomColumns'
 import type { BomRow } from '../../../../types/bom.types'
 import type { NavNode } from '../../../../types/nav.types'
 import type { WeaveDensity } from '../../../../theme/types'
-
-const STORAGE_KEY = 'bom-visible-columns'
+import { loadSettings, saveSettings } from '../../../../settings'
 
 const DENSITY_MAP: Record<WeaveDensity, 'compact' | 'standard' | 'comfortable'> = {
   high: 'compact',
@@ -27,14 +26,13 @@ export function BomTab({ node }: BomTabProps) {
   const theme = useTheme()
   const { rows, loading, error, toggleRow, loadMore } = useBomLoader(node)
 
-  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : DEFAULT_VISIBLE_COLUMNS
-  })
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(
+    () => loadSettings().bomVisibleColumns ?? DEFAULT_VISIBLE_COLUMNS
+  )
 
   const handleColumnChange = (ids: string[]) => {
     setVisibleColumnIds(ids)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
+    saveSettings({ bomVisibleColumns: ids })
   }
 
   const cellContext: BomCellContext = useMemo(
@@ -86,6 +84,10 @@ export function BomTab({ node }: BomTabProps) {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <BomColumnSettings
+        visibleColumnIds={visibleColumnIds}
+        onChange={handleColumnChange}
+      />
       <DataGrid
         rows={rows}
         columns={gridColumns}
@@ -93,13 +95,6 @@ export function BomTab({ node }: BomTabProps) {
         hideFooter
         disableColumnMenu
         density={DENSITY_MAP[theme.density as WeaveDensity] ?? 'standard'}
-        slots={{ toolbar: BomColumnSettings }}
-        slotProps={{
-          toolbar: {
-            visibleColumnIds,
-            onChange: handleColumnChange,
-          } as any,
-        }}
         sx={{ border: 'none', flex: 1 }}
       />
     </Box>

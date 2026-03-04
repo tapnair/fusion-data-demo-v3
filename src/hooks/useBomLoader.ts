@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useApolloClient } from '@apollo/client/react'
-import { GET_ITEM_BOM, GET_COMPONENT_BOM_CHILDREN } from '../graphql/queries/bom'
+import { GET_ROOT_COMPONENT_BOM, GET_COMPONENT_BOM_CHILDREN } from '../graphql/queries/bom'
+import { GET_ITEM_DETAIL } from '../graphql/queries/items'
 import type { NavNode } from '../types/nav.types'
 import type { BomRow } from '../types/bom.types'
 
@@ -98,13 +99,36 @@ export function useBomLoader(node: NavNode) {
       setError(null)
       setRows([])
       try {
+        // Read component ID from cache (populated by ItemDetail) or fetch if needed
+        let componentId: string | null = null
+        const cached = client.readQuery<any>({
+          query: GET_ITEM_DETAIL,
+          variables: { hubId: node.hubId!, itemId: node.entityId },
+        })
+        componentId = cached?.item?.tipRootModel?.component?.id ?? null
+
+        if (!componentId) {
+          const { data: itemData } = await client.query<any>({
+            query: GET_ITEM_DETAIL,
+            variables: { hubId: node.hubId!, itemId: node.entityId },
+          })
+          componentId = itemData?.item?.tipRootModel?.component?.id ?? null
+        }
+
+        if (cancelled) return
+
+        if (!componentId) {
+          setRows([])
+          return
+        }
+
         const { data } = await client.query<any>({
-          query: GET_ITEM_BOM,
-          variables: { hubId: node.hubId!, itemId: node.entityId, pagination: { limit: 50 } },
+          query: GET_ROOT_COMPONENT_BOM,
+          variables: { componentId, pagination: { limit: 50 } },
         })
         if (cancelled) return
 
-        const component = data?.item?.tipRootModel?.component
+        const component = data?.component
         if (!component) {
           setRows([])
           return
