@@ -1,0 +1,44 @@
+{
+  "BulkQueryResponse": [
+    "BulkBomRelationsQueryResponse",
+    "BulkComponentFromStateQueryResponse",
+    "BulkComponentsQueryResponse",
+    "BulkModelsQueryResponse"
+  ],
+  "ConfigValue": [
+    "BooleanValue",
+    "IntValue",
+    "StringValue"
+  ],
+  "HistoryChange": [
+    "BasicItemWrittenHistoryChange",
+    "ComponentPartNumberHistoryChange",
+    "ComponentPrimaryHistoryChange",
+    "DrawingItemWrittenHistoryChange",
+    "MarkerHistoryChange",
+    "ModelComponentHistoryChange",
+    "ModelWrittenHistoryChange",
+    "PropertiesUpdatedHistoryChange",
+    "RevisionCreatedHistoryChange",
+    "VersionCreatedHistoryChange"
+  ],
+  "IProperty": [
+    "ComputedProperty",
+    "Property"
+  ],
+  "Item": [
+    "BasicItem",
+    "ConfiguredDesignItem",
+    "DesignItem",
+    "DrawingItem"
+  ],
+  "SearchResultObjectUnion": [
+    "BasicItem",
+    "Component",
+    "ConfiguredDesignItem",
+    "DesignItem",
+    "DrawingItem",
+    "Folder",
+    "Model"
+  ]
+}

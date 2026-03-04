@@ -1,0 +1,3275 @@
+# Autodesk Manufacturing Data Model API v3 Schema
+# Generated via introspection
+
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @deprecated(reason: String) on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+directive @specifiedBy(url: String!) on SCALAR
+directive @defer(label: String, if: Boolean!) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+"""The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."""
+scalar Int
+
+"""The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)."""
+scalar Float
+
+"""The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."""
+scalar String
+
+"""The `Boolean` scalar type represents `true` or `false`."""
+scalar Boolean
+
+"""The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID."""
+scalar ID
+
+"""Input object for activating a hub member."""
+input ActivateHubMemberInput {
+  hubId: ID!
+  emailAddress: EmailAddress!
+}
+
+"""Return payload for activating a hub member operation."""
+type ActivateHubMemberPayload {
+  """Object representing the hub."""
+  hub: Hub
+  """Details of the updated hub member."""
+  member: HubMember
+}
+
+"""Input object for adding an EventListener."""
+input AddEventListenerInput {
+  targetId: ID!
+  eventType: String!
+  expiration: DateTime!
+  channelId: String!
+}
+
+"""Return payload for adding an EventListener."""
+type AddEventListenerPayload {
+  """The PropertyReservation that was added."""
+  eventListener: EventListener!
+  credentials: PubNubCredentials!
+}
+
+"""Input object for adding members to folder."""
+input AddFolderMembersInput {
+  projectId: ID!
+  folderId: ID!
+  memberRole: FolderRoleEnum!
+  emailAddresses: [EmailAddress!]!
+}
+
+"""Return payload on add folder members operation."""
+type AddFolderMembersPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for adding members to group."""
+input AddGroupMembersInput {
+  hubId: ID!
+  groupId: ID!
+  emailAddresses: [EmailAddress!]!
+}
+
+"""Return payload for add members to group operation."""
+type AddGroupMembersPayload {
+  """Object representing the group."""
+  group: Group
+}
+
+"""Input object for adding member groups to a folder."""
+input AddGroupsToFolderInput {
+  folderId: ID!
+  projectId: ID!
+  groupRole: FolderRoleEnum!
+  groupIds: [ID!]!
+}
+
+"""Return payload on add groups to folder operation."""
+type AddGroupsToFolderPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for adding member groups to a project."""
+input AddGroupsToProjectInput {
+  projectId: ID!
+  groupRole: FolderRoleEnum!
+  groupIds: [ID!]!
+}
+
+"""Return payload on add groups to project operation."""
+type AddGroupsToProjectPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input object for adding members to hub."""
+input AddHubMembersInput {
+  hubId: ID!
+  emailAddresses: [EmailAddress!]!
+  captchaToken: String
+}
+
+"""Return payload on add hub members operation."""
+type AddHubMembersPayload {
+  """ID of the hub."""
+  hub: Hub
+}
+
+"""Input object for adding members to project member."""
+input AddProjectMembersInput {
+  projectId: ID!
+  memberRole: FolderRoleEnum!
+  emailAddresses: [EmailAddress!]!
+}
+
+"""Return payload on add project members operation."""
+type AddProjectMembersPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""input object for add to eco"""
+input AddToEcoInput {
+  id: ID!
+  ecoUrn: ID!
+  affectedBy: String!
+}
+
+"""A single API configuration setting containing a parameter name and its value."""
+type ApiConfig {
+  """The name of the configuration parameter."""
+  name: String!
+  """The value of the configuration parameter as a union type (string, integer, or boolean)."""
+  value: ConfigValue!
+}
+
+"""Input object for apiConfigurationInfo query."""
+input ApiConfigurationInfoInput {
+  apiNames: [String!]
+}
+
+"""Return payload for apiConfigurationInfo query."""
+type ApiConfigurationInfoPayload {
+  """The name of the API for which the configuration information is provided."""
+  apiName: String!
+  """List of configuration settings for the API, each containing a parameter name and value."""
+  configs: [ApiConfig!]
+}
+
+"""Object representing an application."""
+type Application {
+  """ID of the application."""
+  id: ID!
+  """Name of the application."""
+  name: String!
+  """Email ID of the application owner."""
+  owner: String!
+  """List of property definition collections associated with the application."""
+  propertyDefinitionCollections(filter: PropertyDefinitionCollectionFilterInput, pagination: PaginationInput): PropertyDefinitionCollections!
+}
+
+"""Input for archiving a project in a hub."""
+input ArchiveProjectInput {
+  projectId: ID!
+}
+
+"""Return payload for archiving a project operation."""
+type ArchiveProjectPayload {
+  """An object representing the project that was updated."""
+  project: Project
+}
+
+"""Input for archiving a property definition."""
+input ArchivePropertyDefinitionInput {
+  propertyDefinitionId: ID!
+}
+
+"""Response of ``archive`` property definition operation."""
+type ArchivePropertyDefinitionPayload {
+  """Archived property definition object."""
+  propertyDefinition: PropertyDefinition!
+}
+
+"""Composition of the assembly to retrieve."""
+enum AssemblyCompositionEnum {
+  WORKING
+  RELEASED
+  AS_SAVED
+  LATEST
+}
+
+"""Assembly relation between two models."""
+type AssemblyRelation {
+  """To model of the relation."""
+  toModel: Model
+  """From model of the relation."""
+  fromModel: Model
+  """Component index in the to model of the relation."""
+  toModelInstanceIndex: Int
+  """The time when the assembly relation was created."""
+  createdOn: DateTime!
+}
+
+"""Contains a list of assembly relations returned in response to a query."""
+type AssemblyRelations {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array that contains objects representing assembly relations."""
+  results: [AssemblyRelation]!
+}
+
+"""Input object for assigning partNumber for the given model."""
+input AssignPartNumberInput {
+  modelId: ID!
+  partNumber: String!
+  isConfigurationRuleIgnored: Boolean = false
+}
+
+"""Return payload for assign Model PartNumber."""
+type AssignPartNumberPayload {
+  """The updated model."""
+  model: Model!
+}
+
+"""Represents a basic item that does not contain components or drawings.
+
+A basic item is a container that stores data, information, settings, or commands used with a computer program."""
+type BasicItem implements Item {
+  """The ID that uniquely identifies the item."""
+  id: ID!
+  """An object representing the hub that contains this item."""
+  hub: Hub
+  """An object representing the project that contains this item."""
+  project: Project
+  """The folder that contains this item."""
+  parentFolder: Folder
+  """A human-readable name to identify this item."""
+  name: String
+  """Indicates when this item was created."""
+  createdOn: DateTime
+  """An object representing the user who created this item."""
+  createdBy: User
+  """Indicates when this folder was most recently modified."""
+  lastModifiedOn: DateTime
+  """An object representing the user who made the most recent modification."""
+  lastModifiedBy: User
+  """The extension type of the item."""
+  extensionType: String
+  """The mime type of the item."""
+  mimeType: String
+  """The size of the item in bytes."""
+  size: String
+  """Retrieves the history changes of a Basic Item."""
+  history(input: HistoryInput, pagination: PaginationInput): HistoryChanges!
+}
+
+"""Object representing the Changes that occurred to the BasicItem."""
+type BasicItemWrittenHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The basicItem associated with the BasicItemWrittenHistoryChange."""
+  basicItem: BasicItem!
+}
+
+"""Represents the binary of the item."""
+type Binary {
+  """A system-generated ID that uniquely identifies this binary"""
+  id: ID!
+}
+
+"""An enum value indicating the state of the BOM."""
+enum BOMCompositionEnum {
+  """BOM for the design you are currently working on and have saved."""
+  WORKING
+  """BOM for the most recently released version of this design. This can vary, depending on referenced components and other factors. Available only to Fusion Manage Extension subscribers."""
+  RELEASED
+  """BOM including the changes that are pending review and approval of this design. Available only to Fusion Manage Extension subscribers."""
+  PENDING
+}
+
+"""Object representing a BOM relation between parent and child BOM item"""
+type BOMRelation {
+  """A system-generated ID that uniquely identifies this object."""
+  id: ID!
+  """Object which represents the BOM item"""
+  toComponent: Component
+  """State to be used for querying the BOM item"""
+  toComponentState: String
+  """The parent item, used to establish and navigate the hierarchy within the BOM."""
+  fromComponent: Component
+  """Represents the number of this item required to manufacture a single unit of the parent item. Deprecated in favor of quantityProperty."""
+  quantity: Int! @deprecated(reason: "No longer supported")
+  """Represents the numerical property of this item required to manufacture a single unit of the parent item."""
+  quantityProperty: Property!
+  """Sequence number which ensures ordering of BOM relations, starting from 1."""
+  sequenceNumber: Int!
+  """Retrieves computed properties present on a BOMRelation, at time which is provided by computeTime argument.
+Between BOMRelation state time and provided computeTime, BOMRelation state time will take precedence.
+Property IDs are mandatory in filter argument, with maximum size of 20."""
+  computedProperties(filter: PropertyFilterInput!, computeTime: DateTime): ComputedProperties!
+}
+
+"""Object that contains an array of BOM relations"""
+type BOMRelations {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination!
+  """An array of BOM relations"""
+  results: [BOMRelation]!
+}
+
+enum BOMViewTypeEnum {
+  STRUCTURED
+  PARTS_ONLY
+}
+
+"""Wrapper type for boolean values in API configuration parameters. This form is used to make the type compatible with unions."""
+type BooleanValue {
+  """The boolean configuration value."""
+  boolValue: Boolean
+}
+
+"""A generic bounding box."""
+type BoundingBox3D {
+  """The x-direction of the box."""
+  length: Property
+  """The y-direction of the box."""
+  width: Property
+  """The z-direction of the box."""
+  height: Property
+}
+
+"""Input object for bulk fetching BOMRelations."""
+input BulkBomRelationsFromStateQueryInput {
+  bomRelationId: ID!
+  state: String!
+  inputKey: String
+}
+
+"""Response object when retrieving BOMRelations in bulk."""
+type BulkBomRelationsQueryResponse implements BulkQueryResponse {
+  """BOM relation, if fetching was successful."""
+  bomRelation: BOMRelation
+  """Optional error object, if an error occurred."""
+  error: BulkQueryError
+  """Optional identifier provided with the input for mapping response items to inputs."""
+  inputKey: String
+}
+
+"""Input object for bulk fetching Components based on Component state.
+Retrieves a Component in bulk request based on the specified component state."""
+input BulkComponentFromStateQueryInput {
+  inputKey: String
+  state: String
+}
+
+"""Response object when retrieving components in bulk based on Component state"""
+type BulkComponentFromStateQueryResponse implements BulkQueryResponse {
+  """Optional identifier provided with the input for mapping response items to inputs."""
+  inputKey: String
+  """Optional error object, if an error occurred."""
+  error: BulkQueryError
+  """The component, if fetching was successful."""
+  component: Component
+}
+
+"""Input object for bulk fetching the list of Components.
+Retrieves a Component in bulk request based on the specified component ID and component state. State of the component can be provided with:
+- composition and time arguments or,
+- state argument, which will take precedence over composition and time arguments, if provided."""
+input BulkComponentsQueryInput {
+  componentId: ID!
+  composition: BOMCompositionEnum = WORKING
+  time: DateTime
+  inputKey: String
+  state: String
+}
+
+"""Response object when retrieving components in bulk"""
+type BulkComponentsQueryResponse implements BulkQueryResponse {
+  """Optional identifier provided with the input for mapping response items to inputs."""
+  inputKey: String
+  """Optional error object, if an error occurred."""
+  error: BulkQueryError
+  """The component, if fetching was successful."""
+  component: Component
+}
+
+"""Input array object for retrieving models in bulk"""
+input BulkModelsQueryInput {
+  modelId: ID!
+  time: DateTime
+  composition: AssemblyCompositionEnum = WORKING
+  inputKey: String
+}
+
+"""Response object when retrieving models in bulk"""
+type BulkModelsQueryResponse implements BulkQueryResponse {
+  """Optional identifier provided with the input for mapping response items to inputs."""
+  inputKey: String
+  """Optional error object, if an error occurred."""
+  error: BulkQueryError
+  """The model, if it was found."""
+  model: Model
+}
+
+"""Error information for individual items in bulk query operations."""
+type BulkQueryError {
+  """The error category indicating what went wrong during item retrieval."""
+  code: BulkQueryErrorEnum!
+  """Additional details about the error, when available."""
+  message: String
+}
+
+"""Error categories for bulk query operations, indicating why individual item retrieval failed."""
+enum BulkQueryErrorEnum {
+  """The requested item does not exist or is not accessible."""
+  NOT_FOUND
+  """The request parameters are invalid or malformed."""
+  BAD_REQUEST
+  """The operation timed out before the item could be retrieved."""
+  TIMEOUT
+  """An unexpected server error occurred during item retrieval."""
+  ERROR
+}
+
+"""Response object when retrieving entities in bulk."""
+interface BulkQueryResponse {
+  inputKey: String
+  error: BulkQueryError
+}
+
+"""Input object for changing folder member role."""
+input ChangeFolderMemberRoleInput {
+  emailAddress: EmailAddress!
+  folderId: ID!
+  memberRole: FolderRoleEnum!
+  projectId: ID!
+}
+
+"""Return payload on changing folder member role operation."""
+type ChangeFolderMemberRolePayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for changing the role of groups in a folder."""
+input ChangeGroupsRoleInFolderInput {
+  folderId: ID!
+  groupIds: [ID!]!
+  groupRole: FolderRoleEnum!
+  projectId: ID!
+}
+
+"""Return payload for change groups' role in folder operation."""
+type ChangeGroupsRoleInFolderPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for changing the role of groups in a project."""
+input ChangeGroupsRoleInProjectInput {
+  groupIds: [ID!]!
+  groupRole: FolderRoleEnum!
+  projectId: ID!
+}
+
+"""Return payload for change groups' role in project operation."""
+type ChangeGroupsRoleInProjectPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input object for updating a member's role in the hub."""
+input ChangeHubMemberRoleInput {
+  emailAddress: EmailAddress!
+  hubId: ID!
+  role: HubMemberRoleEnum!
+}
+
+"""Return payload on update hub member role operation."""
+type ChangeHubMemberRolePayload {
+  """Details of the updated hub member."""
+  member: HubMember
+}
+
+"""Input object for changing project member role."""
+input ChangeProjectMemberRoleInput {
+  emailAddress: EmailAddress!
+  memberRole: FolderRoleEnum!
+  projectId: ID!
+}
+
+"""Return payload on changing project member role operation."""
+type ChangeProjectMemberRolePayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Filter relations based on compare results.
+If not provided, defaults to include only primary reasons: IDENTICAL, TARGET_IS_SECONDARY_MODEL_TO_SOURCE and SOURCE_ONLY."""
+input CompareComponentFilterInput {
+  compare: CompareFilter
+}
+
+"""Provide a source/target component to compare to."""
+input CompareComponentInput {
+  composition: BOMCompositionEnum = WORKING
+  id: ID!
+  time: DateTime
+}
+
+"""Enums indicating the primary reason of difference."""
+enum CompareComponentReasonEnum {
+  """CAD and BOM consume the primary model"""
+  IDENTICAL
+  """Component is not consumed in either CAD or BOM"""
+  NONE
+  """Model is not consumed in CAD"""
+  SOURCE_ONLY
+  """CAD consumes secondary model, BOM represents the primary"""
+  TARGET_IS_SECONDARY_MODEL_TO_SOURCE
+  """Component is not consumed in BOM"""
+  TARGET_ONLY
+}
+
+"""Return payload that contains a component and compare result."""
+type CompareComponentResult {
+  compareStatus: CompareComponentStatus!
+  component: Component!
+}
+
+"""Enums indicating the secondary reason of difference."""
+enum CompareComponentSecondaryReasonEnum {
+  """CAD is out of date and does not reflect the latest save"""
+  CAD_OUT_OF_DATE
+  """Component is hidden due to parent being overridden as part"""
+  PARENT_OVERRIDDEN_AS_PART
+  """Component is present in the Secondary SPN, but is not present in the Primary"""
+  PARENT_SECONDARY
+  """Component is hidden due to parent being removed from all BOMs"""
+  REFERENCE_ONLY
+}
+
+"""Object that contains the compare result."""
+type CompareComponentStatus {
+  primaryReason: CompareComponentReasonEnum!
+  secondaryReason: CompareComponentSecondaryReasonEnum
+}
+
+"""Represents compare filters."""
+input CompareFilter {
+  primaryReason: [CompareComponentReasonEnum!]
+}
+
+"""Provide a target model to compare to."""
+input CompareModelInput {
+  composition: AssemblyCompositionEnum = WORKING
+  id: ID!
+  time: DateTime
+}
+
+"""Provide either a target model or component to compare to.
+Only model is supported for now."""
+input CompareTargetInput {
+  component: CompareComponentInput
+  model: CompareModelInput
+}
+
+"""An object representing an item in the bill of materials (BOM). It can be a part, an assembly, a sub-assembly or an end product which is the very top-level with no parent above it."""
+type Component {
+  """A system-generated ID that uniquely identifies this object."""
+  id: ID!
+  """The date and time used for traversing the BOM item"""
+  timestamp: DateTime!
+  """The current composition in which the Component is resolved."""
+  composition: BOMCompositionEnum!
+  """Component Description"""
+  description: Property!
+  """Name of the material from which the component consists."""
+  materialName: Property
+  """An aggregation of all of the materials present in the bodies of the model.
+Value will be `Various` if there are different materials present.
+For assemblies this value is not present."""
+  totalCompositeMaterialName: Property
+  """Name of the Component"""
+  name: Property
+  """Part number"""
+  partNumber: Property!
+  """Part number at tip"""
+  tipPartNumber: Property!
+  """Indicates whether this Bill of Materials (BOM) item has child items.
+``true``: The BOM item has one or more child items.
+``false``: The BOM item does not have any child items and represents a leaf in the BOM structure."""
+  hasChildren: Boolean
+  """Indicates the BomStructure property, which determines how a component should be treated in all Bills of Materials. as of now supported integer values:
+"value": 0 (DEFAULT)
+"value": 2 (HIDDEN_CHILDREN)"""
+  bomStructureTypeProperty: Property!
+  """Indicate whether model is the only member in its assigned part number group."""
+  isStandalone: Boolean
+  """Indicates whether this Component is time-bounded. In other words - at the time of resolution, is Component resolved at latest possible time."""
+  isTip: Boolean!
+  """A URL that provides a direct link to access the BOM in Fusion Team. If internal component, share link is null"""
+  shareLink(viewType: BOMViewTypeEnum = STRUCTURED): Url
+  """Item number"""
+  itemNumber: ItemNumber
+  """Fusion Manage extension fields."""
+  lifecycle: Lifecycle
+  """Revision information about managed item"""
+  revision: Revision
+  """State to be used for querying the BOM item"""
+  componentState: String
+  """Retrieves Base Properties present on a Component.
+Pagination is currently not supported, the API will return all available base properties without pagination."""
+  baseProperties(pagination: PaginationInput, filter: PropertyFilterInput): Properties
+  """Retrieves custom properties present on a Component.
+Pagination is currently not supported, the API will return all available custom properties without pagination."""
+  customProperties(pagination: PaginationInput, filter: PropertyFilterInput): Properties
+  """Retrieves computed properties present on a Component, at time which is provided by computeTime argument.
+Between Component state time and provided computeTime, Component state time will take precedence.
+This API require ids in filter, which is mandatory input. Maximum size of ids can be 20."""
+  computedProperties(filter: PropertyFilterInput!, computeTime: DateTime): ComputedProperties!
+  """Retrieves all properties present on a Component.
+Pagination is currently not supported, the API will return all available properties without pagination."""
+  allProperties(pagination: PaginationInput): Properties
+  """Represents the primary model of the Part Number Group (Component).
+Might not exist if the corresponding BOM item does not have a CAD model."""
+  primaryModel: Model
+  """Contains a flat list of BOM relations for this BOM item for a specific depth
+(default is 0 which means all BOM relations, whole BOM tree).
+Currently only depth 1 is supported."""
+  bomRelations(depth: Int = 0, pagination: PaginationInput): BOMRelations!
+  """Retrieves the thumbnail of the component"""
+  thumbnail: Thumbnail
+  """Indicates whether a user has WRITE access on this component."""
+  isWritableByUser: Boolean!
+  """Version associated to this component in the context of a BomRelation query"""
+  version: Version
+  """An object representing the hub that contains this component."""
+  hub: Hub!
+  """Retrieves parts list of a component."""
+  partsList(pagination: PaginationInput, filter: PropertyFilterInput, computeTime: DateTime): PartsListItems!
+}
+
+"""Object representing the Part Number Change that occurred on a Component."""
+type ComponentPartNumberHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The Part Number property that was changed."""
+  partNumber: Property!
+  """The component were Part Number was changed."""
+  component: Component
+}
+
+"""Object representing the Changes that occurred to the primary of the Component."""
+type ComponentPrimaryHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The old primary model of the component."""
+  oldPrimary: Model
+  """The new primary model of the component."""
+  newPrimary: Model
+  """The changed component."""
+  component: Component
+}
+
+"""Object representing list of Computed Properties."""
+type ComputedProperties {
+  """An array of Computed Properties."""
+  results: [ComputedProperty]!
+  """Errors encountered while processing Computed Properties."""
+  errors: [ComputedPropertiesError!]
+}
+
+""" Represents the error details while processing Computed Properties"""
+type ComputedPropertiesError {
+  """An enum indicating the type of error that occurred when processing computed property."""
+  code: ComputedPropertiesErrorEnum!
+  """The description of the error."""
+  message: String!
+}
+
+""" Represents the error code while processing Computed Properties"""
+enum ComputedPropertiesErrorEnum {
+  """ Unknown error occurred while processing Computed Properties"""
+  UNKNOWN_ERROR
+  """ Partially Computed Properties due to missing data."""
+  PARTIALLY_COMPUTED
+  """ Failed to process Computed Properties due to circular reference detected in BOM"""
+  CIRCULAR_REFERENCE
+  """ The component is not found with given query parameters"""
+  COMPONENT_NOT_FOUND
+}
+
+"""Data object that represents computed property."""
+type ComputedProperty implements IProperty {
+  """Human readable name for a computed Property."""
+  name: String!
+  """Display value of the computed property."""
+  displayValue: String
+  """Value of the computed property."""
+  value: PropertyValue
+  """Data object that represents property definition."""
+  definition: PropertyDefinition!
+  """Indicates the status of the computation process."""
+  status: ComputedPropertyStatusEnum!
+  """Indicates whether the property is stale for given target (Component/BOMRelation)."""
+  isStaleForTarget: Boolean!
+}
+
+"""ComputedProperty State."""
+enum ComputedPropertyStatusEnum {
+  """ComputedProperties Aggregation job is sumbmitted and running."""
+  IN_PROGRESS
+  """ComputedProperties Aggregation job completed."""
+  COMPLETED
+  """ComputedProperties Aggregation job failed."""
+  FAILED
+}
+
+"""An object representing the configuration row."""
+type ConfigurationRow {
+  """A system-generated ID that uniquely identifies this configuration row in the table."""
+  id: ID!
+  """The name of this configuration row."""
+  name: String!
+}
+
+"""An object representing the configuration table."""
+type ConfigurationTable {
+  """ID that uniquely identifies this configuration table in the design."""
+  id: ID!
+  """The name of this configuration table."""
+  name: String!
+  """ConfiguredDesignItem associated with this ConfigurationTable"""
+  configuredDesignItem: ConfiguredDesignItem!
+  """An array of rows within this configuration table."""
+  rows: [ConfigurationRow]!
+}
+
+"""Represents an item that contains configurations"""
+type ConfiguredDesignItem implements Item {
+  """A system-generated ID that uniquely identifies the item."""
+  id: ID!
+  """An object representing the hub that contains this item."""
+  hub: Hub
+  """An object representing the project that contains this item."""
+  project: Project
+  """The folder that contains this item."""
+  parentFolder: Folder
+  """A human-readable name to identify this item."""
+  name: String
+  """Indicates when this item was created."""
+  createdOn: DateTime
+  """An object representing the user who created this item."""
+  createdBy: User
+  """Indicates when this item was most recently modified."""
+  lastModifiedOn: DateTime
+  """An object representing the user who made the most recent modification."""
+  lastModifiedBy: User
+  """The extension type of the item."""
+  extensionType: String
+  """The mime type of the item."""
+  mimeType: String
+  """The size of the item in bytes."""
+  size: String
+  """An object representing the configuration table of most recent version of this item."""
+  tipConfigurationTable: ConfigurationTable!
+  """An object representing the thumbnail of the most recent save of this item."""
+  thumbnail: Thumbnail
+  """Fusion Team URL of the ConfiguredDesignItem."""
+  fusionWebUrl: Url
+  """Retrieves the history changes of a ConfiguredDesignItem."""
+  history(input: HistoryInput, pagination: PaginationInput): HistoryChanges!
+  """An object representing the binary of the ConfiguredDesignItem."""
+  binary: Binary
+}
+
+"""Union type representing API configuration parameter values as string, integer, or boolean types."""
+union ConfigValue = StringValue | IntValue | BooleanValue
+
+"""Input object for copying a folder."""
+input CopyFolderInput {
+  sourceFolderId: ID!
+  destinationProjectId: ID!
+  destinationFolderId: ID
+}
+
+"""Return payload on copy folder operation."""
+type CopyFolderPayload {
+  """Object representing the copied folder."""
+  folder: Folder
+}
+
+"""Input object for creating a design from a file."""
+input CreateDesignFromFileInput {
+  hubId: ID!
+  sourceItemId: ID!
+  name: String
+}
+
+"""Return payload for creating a design from a file operation."""
+type CreateDesignFromFilePayload {
+  """Export job ID for creating a design from a file."""
+  exportId: ID!
+}
+
+"""Input object for creating a folder."""
+input CreateFolderInput {
+  projectId: ID!
+  parentFolderId: ID
+  name: String!
+}
+
+"""Return payload for create folder operation."""
+type CreateFolderPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for creating a group of members."""
+input CreateGroupInput {
+  hubId: ID!
+  name: String!
+  description: String
+  emailAddresses: [EmailAddress!]
+}
+
+"""Return payload on create group operation."""
+type CreateGroupPayload {
+  """Object representing the group."""
+  group: Group
+}
+
+"""Input for creating a project."""
+input CreateProjectInput {
+  hubId: ID!
+  name: String!
+}
+
+"""Return payload on create project operation."""
+type CreateProjectPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input for creating property definition collection."""
+input CreatePropertyDefinitionCollectionInput {
+  name: String!
+  description: String
+}
+
+"""Return payload on property definition collection creation."""
+type CreatePropertyDefinitionCollectionPayload {
+  """Object representing the property definition collection."""
+  propertyDefinitionCollection: PropertyDefinitionCollection!
+}
+
+"""Input required for creating property definitions."""
+input CreatePropertyDefinitionsInput {
+  propertyDefinitionCollectionId: ID!
+  propertyDefinitionsInput: [PropertyDefinitionInput!]!
+}
+
+"""Response of ``create`` property definitions operation."""
+type CreatePropertyDefinitionsPayload {
+  """An array of created property definition objects."""
+  propertyDefinitions: [PropertyDefinition!]!
+}
+
+"""Input object for createVersionForComponent"""
+input CreateVersionForComponentInput {
+  componentId: ID!
+  description: String!
+}
+
+"""Input object for CreateVersionForItem"""
+input CreateVersionForItemInput {
+  hubId: ID!
+  itemId: ID!
+  description: String!
+}
+
+"""Input object for CreateVersion"""
+input CreateVersionInput {
+  targetId: ID!
+  description: String!
+  hubId: ID
+}
+
+"""Return payload for createVersion."""
+type CreateVersionPayload {
+  """The version created"""
+  version: Version
+}
+
+"""An ISO-8601 encoded UTC date string."""
+scalar DateTime
+
+"""Input object for deactivating a hub member."""
+input DeactivateHubMemberInput {
+  hubId: ID!
+  emailAddress: EmailAddress!
+}
+
+"""Return payload for deactivating a hub member operation."""
+type DeactivateHubMemberPayload {
+  """Object representing the hub."""
+  hub: Hub
+  """Details of the updated hub member."""
+  member: HubMember
+}
+
+"""Input object for deleting a folder."""
+input DeleteFolderInput {
+  folderId: ID!
+  hubId: ID!
+}
+
+"""Return payload for delete folder operation."""
+type DeleteFolderPayload {
+  """ID of the deleted folder."""
+  folderId: ID
+}
+
+"""Input for deleting a project in a hub."""
+input DeleteProjectInput {
+  projectId: ID!
+  hubId: ID!
+}
+
+"""Return payload for deleting a project operation."""
+type DeleteProjectPayload {
+  """ID of the deleted project."""
+  projectId: ID
+}
+
+"""Result of Derivative Service after Job gets processed for individual OutputFormatEnum."""
+type Derivative {
+  """The ID that uniquely identifies the derivative."""
+  id: ID!
+  """The format of the generated derivatives. The supported format types include STEP, STL, and OBJ."""
+  outputFormat: OutputFormatResponseEnum!
+  """Indicates the status of the derivative generation process."""
+  status: DerivativeStatusEnum!
+  """The generated encoded URL."""
+  signedUrl: String
+  """Time after which signed url will not usable."""
+  expires: String
+}
+
+"""Inputs to control Derivative Service api execution."""
+input DerivativeInput {
+  outputFormat: [OutputFormatEnum]
+  generate: Boolean
+}
+
+"""The Derivative availability states."""
+enum DerivativeStatusEnum {
+  """Derivative generation in progress."""
+  IN_PROGRESS
+  """Derivative generation is successful."""
+  SUCCESS
+  """Derivative generation is pending."""
+  PENDING
+  """Derivative generation failed."""
+  FAILED
+  """Derivative generation process timed out."""
+  TIMEOUT
+  """Derivative generation status is complete."""
+  COMPLETE
+  """Derivative generation is not present."""
+  NOT_GENERATED
+}
+
+"""Represents an item that contains a product design."""
+type DesignItem implements Item {
+  """A system-generated ID that uniquely identifies the item."""
+  id: ID!
+  """An object representing the hub that contains this item."""
+  hub: Hub
+  """An object representing the project that contains this item."""
+  project: Project
+  """The folder that contains this item."""
+  parentFolder: Folder
+  """A human-readable name to identify this item."""
+  name: String
+  """Indicates when this item was created."""
+  createdOn: DateTime
+  """An object representing the user who created this item."""
+  createdBy: User
+  """Indicates when this item was most recently modified."""
+  lastModifiedOn: DateTime
+  """An object representing the user who made the most recent modification."""
+  lastModifiedBy: User
+  """The extension type of the item."""
+  extensionType: String
+  """The mime type of the item."""
+  mimeType: String
+  """The size of the item in bytes."""
+  size: String
+  """A Configuration is a single variant within a Configured Design.
+Go to `Configurations overview https://help.autodesk.com/view/fusion360/ENU/?guid=CFG-OVERVIEW` to learn more about Configurations.
+
+``true`` : This design item is a configuration member.
+
+``false`` : This design item is not a configuration member."""
+  isConfiguration: Boolean
+  """Fusion Team URL of the DesignItem."""
+  fusionWebUrl: Url
+  """An object representing the top-level model of the design at the most recent change."""
+  tipRootModel: Model
+  """An object representing the thumbnail of the most recent save of this item."""
+  thumbnail: Thumbnail
+  """Retrieves the history changes of a Design Item."""
+  history(input: HistoryInput, pagination: PaginationInput): HistoryChanges!
+  """An object representing the binary of the DesignItem."""
+  binary: Binary
+}
+
+type Drawing {
+  id: ID!
+  """A human-readable name to identify the drawing."""
+  name: String!
+  timestamp: DateTime
+  """Fusion Manage extension fields."""
+  lifecycle: Lifecycle
+  """Item number"""
+  itemNumber: ItemNumber
+  """Indicates who created the drawing."""
+  createdBy: User
+  """Revision information about managed drawing"""
+  revision: Revision
+  """Model accociated to the drawing."""
+  model: Model
+  """Retrieves Base Properties present on Drawing at time.
+Pagination is currently not supported, the API will return all available base properties without pagination."""
+  baseProperties(pagination: PaginationInput, filter: PropertyFilterInput): Properties
+  """Retrieves custom properties present on Drawing at time.
+Pagination is currently not supported, the API will return all available custom properties without pagination."""
+  customProperties(pagination: PaginationInput, filter: PropertyFilterInput): Properties
+  """Retrieves all properties present on Drawing at time.
+Pagination is currently not supported, the API will return all available properties without pagination."""
+  allProperties(pagination: PaginationInput): Properties
+}
+
+"""Represents an item that contains 2D projected views of a product design."""
+type DrawingItem implements Item {
+  """A system-generated ID that uniquely identifies the item."""
+  id: ID!
+  """An object representing the hub that contains this item."""
+  hub: Hub
+  """An object representing the project that contains this item."""
+  project: Project
+  """The folder that contains this item."""
+  parentFolder: Folder
+  """A human-readable name to identify this item."""
+  name: String
+  """Indicates when this item was created."""
+  createdOn: DateTime
+  """An object representing the user who created this item."""
+  createdBy: User
+  """Indicates when this item was most recently modified."""
+  lastModifiedOn: DateTime
+  """An object representing the user who made the most recent modification."""
+  lastModifiedBy: User
+  """The extension type of the item."""
+  extensionType: String
+  """The mime type of the item."""
+  mimeType: String
+  """The size of the item in bytes."""
+  size: String
+  """Fusion Team URL of the DrawingItem."""
+  fusionWebUrl: Url
+  """An object representing the thumbnail of the most recent save of this item."""
+  thumbnail: Thumbnail
+  """Retrieves the history changes of a DrawingItem."""
+  history(input: HistoryInput, pagination: PaginationInput): HistoryChanges!
+  """Drawing at the tip for drawingItem Id"""
+  tipDrawing: Drawing
+  """An object representing the binary of the DrawingItem."""
+  binary: Binary
+}
+
+"""Object representing the Changes that occurred to the DrawingItem."""
+type DrawingItemWrittenHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The drawingItem associated with the DrawingItemWrittenHistoryChange."""
+  drawingItem: DrawingItem!
+}
+
+"""Engineering change order object"""
+type Eco {
+  affectedByProperty: Property!
+  """URL of ECO this is a calculated value from ECO URN"""
+  ecoUrl: Url!
+  """URN of Change Order"""
+  id: ID!
+}
+
+"""Custom scalar which represents the list of user’s email address."""
+scalar EmailAddress
+
+"""A data object that represents an EventListener."""
+type EventListener {
+  """ID assigned to the EventListener."""
+  id: ID!
+  """ID of the target that the EventListener applies to (for example, a Component)."""
+  targetId: ID!
+  """The type of event to listen for. Note that a '*' notation is accepted to listen to multiple event types, (for example: 'autodesk.data.mfgdm:component.reservation.*-1.0.0')."""
+  eventType: String!
+  """An ISO-8601 encoded UTC date string indicating when the listener should stop receiving events."""
+  expiration: DateTime!
+  """The PubNub channel id used to receive the event notifications."""
+  channelId: String!
+}
+
+"""Input object for getting the export status of a file."""
+input ExportStatusOfFileInput {
+  exportId: ID!
+  hubId: ID!
+}
+
+"""Return payload for getting the export status of a file."""
+type ExportStatusOfFilePayload {
+  """The Design Item for the file. This will be available when export is complete."""
+  designItem: DesignItem
+  """Progress in percentage for creating a design from a file operation."""
+  progress: String
+  """An enum value indicating the status of creating a design from a file operation."""
+  status: FileExportStatusEnum
+}
+
+"""An enum value indicating the File export status."""
+enum FileExportStatusEnum {
+  """Design creation in progress."""
+  IN_PROGRESS
+  """Design creation is successful."""
+  SUCCESS
+  """Design creation failed."""
+  FAILED
+}
+
+"""Represents a folder.
+A folder is a location for storing files, data, and other folders (sub-folders)."""
+type Folder {
+  """The ID that uniquely identifies the folder."""
+  id: ID!
+  """An object representing the hub that contains this folder."""
+  hub: Hub
+  """An object representing the project that contains this folder."""
+  project: Project
+  """The folder that contains this folder."""
+  parentFolder: Folder
+  """A human-readable name to identify this folder."""
+  name: String
+  """The folder path as a string from project root to this folder (e.g., '/Design/Seats/Seat Cover')."""
+  path: String
+  """Indicates when this folder was created."""
+  createdOn: DateTime
+  """An object representing the user who created this folder."""
+  createdBy: User
+  """Indicates when this folder was most recently modified."""
+  lastModifiedOn: DateTime
+  """An object representing the user who made the most recent modification."""
+  lastModifiedBy: User
+  """Indicates the number items (folders and files) contained in this folder."""
+  objectCount: Int
+  """Contains a list of items that meet the specified filter criteria. You specify the filter criteria as an input to this field. Expand to see the inputs for this field.
+@param {ItemFilterInput=} filter - Specifies how to filter the content of a folder.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  items(filter: ItemFilterInput, pagination: PaginationInput): Items
+  """Contains a list of folders that meet the specified filter criteria. You specify the filter criteria as an input to this field. Expand to see the inputs for this field.
+@param {FolderFilterInput=} filter - Specifies how to filter on folders.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  folders(filter: FolderFilterInput, pagination: PaginationInput): Folders
+  """Fusion Team URL of the folder."""
+  fusionWebUrl: Url
+  """An object representing the members in this folder."""
+  members(filter: FolderMemberFilterInput, pagination: PaginationInput): FolderMembers
+  """An object representing the groups in this folder."""
+  groups(filter: GroupsFilterInput, pagination: PaginationInput): Groups
+}
+
+"""Specifies how to filter folders."""
+input FolderFilterInput {
+  name: String
+}
+
+"""An object representing a member of a folder."""
+type FolderMember {
+  """An object represent the folder that the user is a member of."""
+  folder: Folder!
+  """Role of the member in the folder."""
+  role: FolderRoleEnum!
+  """The status of the folder member."""
+  status: FolderMemberStatus!
+  """Basic details of the user."""
+  user: User!
+  """Profile Picture of the user"""
+  avatarUrl: Url
+  """The display name of the user"""
+  displayName: String
+}
+
+"""Input type for filtering folder members based on their name."""
+input FolderMemberFilterInput {
+  name: String!
+}
+
+"""Represents pagination and result of list of folder members."""
+type FolderMembers {
+  """Contains information about the next page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing folder members."""
+  results: [FolderMember!]
+}
+
+"""Folder member status."""
+enum FolderMemberStatus {
+  """Currently an active member."""
+  ACTIVE
+  """Member is currently inactive."""
+  INACTIVE
+  """Invitation sent, awaiting acceptance."""
+  PENDING
+}
+
+"""An object representing the folder role."""
+type FolderRole {
+  """Direct role of the user or group in folder."""
+  directRole: FolderRoleEnum
+  """Effective role of the user or group in folder."""
+  effectiveRole: FolderRoleEnum
+  """Inherited role of the user or group in folder."""
+  inheritedRole: FolderRoleEnum
+}
+
+"""Types of folder member roles."""
+enum FolderRoleEnum {
+  """Administrator of the folder. All Manager permissions and can delete items forever."""
+  ADMINISTRATOR
+  """Manager of the folder. All Editor permissions and can manage members and set access levels."""
+  MANAGER
+  """Editor of the folder. All Reader permissions and can edit, upload, rename, move and delete."""
+  EDITOR
+  """Reader of the folder. All Viewer permissions and can open with desktop, download and copy."""
+  READER
+  """Viewer of the folder. Can view files, folders, comments and people."""
+  VIEWER
+}
+
+"""A list of Folders returned in response to a query.
+
+A folder contains items, such as designs and sub-folders."""
+type Folders {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array that contains objects representing items."""
+  results: [Folder!]
+}
+
+"""Type Group Represents an object containing group information."""
+type Group {
+  """The ID that uniquely identifies the group."""
+  id: ID!
+  """Name of the group."""
+  name: String
+  """Role of the group in the folder or project."""
+  role: FolderRoleEnum
+  """Indicates when this group was created."""
+  createdOn: DateTime
+  """Description of the group."""
+  description: String
+  """The hub that this group belongs to."""
+  hub: Hub!
+  """The members of this group, with additional details."""
+  members(filter: GroupMemberFilterInput, pagination: PaginationInput): GroupMembers
+  """An object representing the FLC workspaces of group."""
+  workspaces(pagination: PaginationInput): Workspaces
+  """An object representing assigned FLC roles of a group"""
+  flcRoles(pagination: PaginationInput): WorkspaceAssignedRoles
+  """The metadata of the group"""
+  metadata: GroupMetadata
+}
+
+"""Type GroupMember represents an information about the group member."""
+type GroupMember {
+  """An object representing the group that the user is a member of."""
+  group: Group!
+  """Basic details of the user."""
+  user: User!
+  """The status of the group member."""
+  status: FolderMemberStatus!
+  """Profile Picture of the user"""
+  avatarUrl: Url
+  """The display name of the user"""
+  displayName: String
+}
+
+"""Input type for filtering group members based on their name."""
+input GroupMemberFilterInput {
+  name: String!
+}
+
+"""Represents pagination and result of list of group members."""
+type GroupMembers {
+  """Contains information about the next page, when results are split into multiple pages."""
+  pagination: Pagination
+  """list of objects representing group members."""
+  results: [GroupMember!]!
+}
+
+"""Type GroupMetadata represents additional information about the type of group"""
+type GroupMetadata {
+  """Indicates of group is an admin hub"""
+  admin: Boolean!
+  """Indicates of group is an hidden hub"""
+  hidden: Boolean!
+  """Indicates of group is an system hub"""
+  system: Boolean!
+}
+
+"""Represents pagination and list of groups."""
+type Groups {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing groups."""
+  results: [Group!]!
+}
+
+"""Input type for filtering groups."""
+input GroupsFilterInput {
+  name: String!
+}
+
+"""Input type for sorting groups. By default it sorts by name"""
+input GroupsSortInput {
+  order: SortOrderEnum
+}
+
+"""A representation of the History Changes that occurred for an Object."""
+interface HistoryChange {
+  id: ID!
+  description: String
+  author: User
+  timeStamp: DateTime
+  timestamp: DateTime
+}
+
+"""Contains a list of History Changes returned in response to a query."""
+type HistoryChanges {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array containing objects representing changes that occurred in an object's history."""
+  results: [HistoryChange]!
+}
+
+"""The types of History Changes that can occur."""
+enum HistoryChangeTypeEnum {
+  """When a version was created."""
+  VERSION_CREATED
+  """When a revision was created."""
+  REVISION_CREATED
+  """When a model written change occurred."""
+  MODEL_WRITTEN
+  """When a drawing written change occurred."""
+  DRAWING_WRITTEN
+  """When an item written change occurred."""
+  BASIC_ITEM_WRITTEN
+  """When a property is updated."""
+  PROPERTY_UPDATED
+  """When BOM is edited."""
+  BOM_EDIT
+  """When the model joined a new component."""
+  MODEL_COMPONENT_UPDATED
+  """When a component's primary is updated."""
+  COMPONENT_PRIMARY_UPDATED
+  """When a component's part number is updated."""
+  COMPONENT_PART_NUMBER_UPDATED
+}
+
+"""Specifies how to query a Object's history.
+If startTime isn't present, then retrieves from the beginning of the Object's History.
+If endTime isn't present, then retrieves until the latest Change.
+If filterTypes isn't present or empty array, retrieve all change types."""
+input HistoryInput {
+  startTime: DateTime
+  endTime: DateTime
+  filterTypes: [HistoryChangeTypeEnum]
+}
+
+"""Represents a hub.
+
+A hub is a container of projects, shared resources, and users with a common context."""
+type Hub {
+  """The ID that uniquely identifies the hub."""
+  id: ID!
+  """A human-readable name to identify the hub."""
+  name: String
+  """Contains a list of projects within the specified hub. Expand to see the inputs for this field.
+@param {ProjectFilterInput=} filter - Specifies how to filter a list of projects. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  projects(filter: ProjectFilterInput, pagination: PaginationInput): Projects
+  """Alternative identifiers for this hub."""
+  alternativeIdentifiers: HubAlternativeIdentifiers
+  """Retrieves property definition collections linked to the hub."""
+  propertyDefinitionCollections(filter: PropertyDefinitionCollectionFilterInput, pagination: PaginationInput): PropertyDefinitionCollections!
+  """Retrieves base property definition collections which are common across fusion users."""
+  basePropertyDefinitionCollections(pagination: PaginationInput): PropertyDefinitionCollections!
+  """Retrieves base property definition collections which are common across fusion users."""
+  computedPropertyDefinitionCollections(pagination: PaginationInput): PropertyDefinitionCollections!
+  """An object representing the hub settings."""
+  settings: HubSettings
+  """Fusion Team URL of the hub."""
+  fusionWebUrl: Url
+  """An object representing the members on this hub, with additional details"""
+  members(filter: HubMemberFilterInput, pagination: PaginationInput, sort: HubMemberSortInput): HubMembers!
+  """An object representing the manage properties of hub."""
+  manage: ManagePropertiesOnHub
+  """An object representing the groups in this hub."""
+  groups(filter: GroupsFilterInput, pagination: PaginationInput, sort: GroupsSortInput): Groups
+  """An object representing the FLC workspaces of hub."""
+  workspaces(filter: WorkspacesFilterInput, pagination: PaginationInput): Workspaces
+  """Data version of the hub."""
+  hubDataVersion: String
+}
+
+"""Alternative ways of referencing a hub."""
+type HubAlternativeIdentifiers {
+  """The ID of this hub when accessing it through forgeDM."""
+  dataManagementAPIHubId: ID!
+}
+
+"""Specifies how to filter hubs."""
+input HubFilterInput {
+  name: String
+}
+
+"""An object representing a member of a hub."""
+type HubMember {
+  """An object represent the hub that the user is a member of."""
+  hub: Hub!
+  """The list of groups member is part of."""
+  groups(filter: GroupsFilterInput, pagination: PaginationInput): Groups
+  """Indicates whether the user is a project creator in the hub"""
+  isProjectCreator: Boolean
+  """Role of the member in the hub."""
+  role: HubMemberRoleEnum!
+  """Basic details of the user."""
+  user: User!
+  """The status of the hub member."""
+  status: HubMemberStatus
+  """Profile Picture of the user"""
+  avatarUrl: Url
+  """The display name of the user"""
+  displayName: String
+}
+
+"""Input type for filtering hub members based on their status."""
+input HubMemberFilterInput {
+  status: HubMemberStatus
+  name: String
+}
+
+"""Types of hub member roles."""
+enum HubMemberRoleEnum {
+  """Admin of the hub. This type of member is an administrator of the hub."""
+  ADMIN
+  """Guest of the hub. This type of member is a project contributor and is a member of certain projects only."""
+  GUEST
+  """Regular member of the hub."""
+  USER
+}
+
+"""Represents pagination and result of list of hub members."""
+type HubMembers {
+  """Contains information about the next page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing hub members."""
+  results: [HubMember!]!
+}
+
+"""Hub member sort fields."""
+enum HubMemberSortFieldInput {
+  """Sort by createdOn"""
+  CREATED_ON
+}
+
+"""Input type for sorting hub members."""
+input HubMemberSortInput {
+  field: HubMemberSortFieldInput
+  order: SortOrderEnum
+}
+
+"""Hub member status."""
+enum HubMemberStatus {
+  """Invitation sent, awaiting acceptance."""
+  PENDING
+  """Currently an active member of the hub."""
+  ACTIVE
+  """Member is currently inactive."""
+  INACTIVE
+}
+
+"""Contains a list of hubs returned in response to a query.
+
+A hub is a container of projects, shared resources, and users with a common context."""
+type Hubs {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array that contains objects representing hubs."""
+  results: [Hub]!
+}
+
+"""Input required for creating hub-scoped property definition."""
+input HubScopedPropertyDefinitionInput {
+  name: String!
+  propertyBehavior: PropertyBehaviorEnum!
+  specification: PropertySpecificationEnum!
+  isReadOnly: Boolean
+  isHidden: Boolean
+  description: String
+  shouldCopy: Boolean
+}
+
+"""Represents hub settings."""
+type HubSettings {
+  """Indicates whether physical properties such as density, volume and mass are enabled in BOM."""
+  arePhysicalPropertiesEnabledInBOM: Boolean
+}
+
+"""Wrapper type for integer values in API configuration parameters. This form is used to make the type compatible with unions."""
+type IntValue {
+  """The integer configuration value."""
+  intValue: Int
+}
+
+"""A representation of Property."""
+interface IProperty {
+  name: String!
+  displayValue: String
+  value: PropertyValue
+  definition: PropertyDefinition!
+}
+
+"""Represents an Item.
+
+An item refers to a file or sub-folder that exists within a folder."""
+interface Item {
+  id: ID!
+  hub: Hub
+  project: Project
+  parentFolder: Folder
+  name: String
+  createdOn: DateTime
+  createdBy: User
+  lastModifiedOn: DateTime
+  lastModifiedBy: User
+  extensionType: String
+  mimeType: String
+  size: String
+}
+
+"""Specifies how to filter folders and files."""
+input ItemFilterInput {
+  name: String
+  itemType: ItemTypeEnum
+}
+
+"""ItemNumber generated from the schema"""
+type ItemNumber {
+  """Generated item number with applied schema for the item"""
+  id: ID!
+  """Item number schema"""
+  schema: ItemNumberSchema!
+  sequenceProperty: Property!
+}
+
+"""Schema representation for ItemNumber generation"""
+type ItemNumberSchema {
+  """Id of the numbering schema for this number"""
+  id: ID!
+  """The name of the schema"""
+  name: String!
+}
+
+"""Contains a list of items returned in response to a query.
+
+An item refers to a file or sub-folder that exists within a folder."""
+type Items {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array that contains objects representing items."""
+  results: [Item!]
+}
+
+"""Represents the types of items supported."""
+enum ItemTypeEnum {
+  """Represents an item that contains a product design."""
+  MFG_DESIGN_ITEM
+  """Represents an item that contains 2D projected views of a product design."""
+  MFG_DRAWING_ITEM
+}
+
+"""Lifecycle object used for PLM change orders"""
+type Lifecycle {
+  """The Manage Item Descriptor"""
+  itemDescriptor: Property
+  """Change order of the item"""
+  eco: Eco
+  """Indicates if managed item is in a lock state"""
+  isLocked: Boolean
+  """Indicates if managed item is a working item"""
+  isWorking: Boolean
+  """Revision of the item [REV:w] for example """
+  revision: Property
+  """The state of the Fusion item in the product lifecycle. Valid values are ``Production``, ``Working``, and ``In Review``. These values are assigned by the Fusion Manage extension."""
+  itemState: Property!
+  """The Manage Item URN"""
+  itemUrn: String
+  """The Manage Item URL this is calculated value from URN"""
+  itemUrl: Url
+  """The Lifecycle state"""
+  state: Property
+}
+
+"""Input object for linking property definition collection to a hub."""
+input LinkPropertyDefinitionCollectionInput {
+  propertyDefinitionCollectionId: ID!
+  hubId: ID!
+}
+
+"""Response of ``link`` property definition collection operation."""
+type LinkPropertyDefinitionCollectionPayload {
+  """Object representing hub."""
+  hub: Hub!
+  """Object representing property definition collection."""
+  propertyDefinitionCollection: PropertyDefinitionCollection!
+}
+
+"""Filter to specify which language locales to include in localization queries."""
+input LocalesFilterInput {
+  locales: [String!]!
+}
+
+"""Translation data for a specific language locale used when updating custom property localization resources."""
+input LocalizationInput {
+  locale: String!
+  name: String!
+  description: String
+}
+
+"""Localized content for a specific language, containing translated field values."""
+type LocalizationRecord {
+  """Language code (e.g., ``en``, ``fr``) for this localization resource."""
+  locale: String!
+  """Translated field values for this language, containing locale-specific content."""
+  localizedFields: [LocalizedField!]!
+}
+
+"""A single translated field within a localization resource, representing a name-value pair."""
+type LocalizedField {
+  """Field identifier indicating what is being translated. Common values: ``name`` (alias for ``localizedName`` in definitions), ``description``."""
+  name: String!
+  """The translated text content for this field in the specified language."""
+  value: String!
+}
+
+"""Represents ManageExtension properties of hub."""
+type ManagePropertiesOnHub {
+  """Indicates whether the Hub is Manage Extension enabled."""
+  isManageExtensionEnabled: Boolean
+  """Indicates the Manage Extension tenantId. Will be null if the hub is not Manage Extension enabled."""
+  manageExtensionTenantId: ID
+}
+
+"""Object representing when a Marker was created."""
+type MarkerHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history change occurred."""
+  timestamp: DateTime
+  """The user that made the marker."""
+  author: User
+  """The description of the marker."""
+  description: String
+}
+
+"""A model is an individual part of an assembly that acts as a single unit. For example, a lug nut is an individual model in a wheel assembly."""
+type Model {
+  """The ID of the model."""
+  id: ID!
+  """Timestamp of this model."""
+  timestamp: DateTime!
+  """Name of the model."""
+  name: Property!
+  """Name of the material from which the model consists."""
+  materialName: Property!
+  """An aggregation of all of the materials present in the model.
+Value will be various if the model is an assembly and there are multiple materials in the subassemblies, otherwise it will be that material."""
+  totalCompositeMaterialName: Property!
+  """Retrieves the history changes of a Model."""
+  history(input: HistoryInput, pagination: PaginationInput): HistoryChanges!
+  """Retrieves the thumbnail of the model"""
+  thumbnail: Thumbnail
+  """List of derivatives including STEP, STL, and OBJ."""
+  derivatives(derivativeInput: DerivativeInput!): [Derivative]
+  """Assembly relations of this model."""
+  assemblyRelations(depth: Int = 0, pagination: PaginationInput): AssemblyRelations
+  """Assembly unique relations of this model.
+Uniqueness of relation is determined with fromModel/toModel id/timestamp/version fields.
+The uniqueness is only guaranteed per page."""
+  uniqueAssemblyRelations(depth: Int = 0, pagination: PaginationInput): AssemblyRelations
+  """A component is an individual part of an assembly that acts as a single unit. For example, a lug nut is an individual component in a wheel assembly."""
+  component(composition: BOMCompositionEnum = WORKING): Component
+  """DesignItem associated with this model"""
+  designItem: DesignItem
+  """ConfiguredDesignItem associated with this model"""
+  configuredDesignItem: ConfiguredDesignItem
+  """ConfigurationRow associated with this model"""
+  configurationRow: ConfigurationRow
+  """Version associated to this model in the context of a assembly relations query"""
+  version: Version
+  """Latest version associated to this model"""
+  latestVersion: Version
+  """Indicates whether a user has WRITE access on this model."""
+  isWritableByUser: Boolean!
+  """Indicates whether this model is at root level."""
+  isRoot: Boolean!
+  """Indicates whether current model is the primary member of joined part number group"""
+  isPrimary: Boolean!
+  """Indicates whether this Model is time-bounded. In other words - at the time of resolution, is Model resolved at latest possible time."""
+  isTip: Boolean!
+  physicalProperties: PhysicalProperties
+  """A Configuration is a single variant within a Configured Design.
+Go to `Configurations overview https://help.autodesk.com/view/fusion360/ENU/?guid=CFG-OVERVIEW` to learn more about Configurations.
+
+``true`` : This design item is a configuration member.
+
+``false`` : This design item is not a configuration member."""
+  isConfiguration: Boolean!
+  composition: AssemblyCompositionEnum!
+}
+
+"""Object representing the Component change that occurred for the Model."""
+type ModelComponentHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The old component of the model."""
+  oldComponent: Component
+  """The new component of the model."""
+  newComponent: Component
+  """The changed model."""
+  model: Model
+}
+
+"""Represents pagination and list of Models."""
+type Models {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing Models"""
+  results: [Model]!
+  """Indicates if there is any model unreadable in current page to the user"""
+  isAllReadableByUser: Boolean
+}
+
+"""Object representing the Changes that occurred to the Model."""
+type ModelWrittenHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The model associated with the model written change."""
+  model: Model
+}
+
+"""Input object for moving a folder."""
+input MoveFolderInput {
+  folderId: ID!
+  destinationProjectId: ID!
+  destinationFolderId: ID
+}
+
+"""Return payload for move folder operation."""
+type MoveFolderPayload {
+  """Object representing the moved folder."""
+  folder: Folder
+}
+
+"""The entry-point for Autodesk entity mutations. This acts as the top-level API from which all mutations must start."""
+type Mutation {
+  """Creates multiple property definitions in a property definition collection.
+@param {CreatePropertyDefinitionsInput} input - The inputs needed to create property definitions."""
+  createPropertyDefinitions(input: CreatePropertyDefinitionsInput!): CreatePropertyDefinitionsPayload
+  """Archives a property definition.
+@param {ArchivePropertyDefinitionInput} input - The inputs needed to archive a property definition."""
+  archivePropertyDefinition(input: ArchivePropertyDefinitionInput!): ArchivePropertyDefinitionPayload
+  """Updates a property definition.
+@param {UpdatePropertyDefinitionInput} input - The inputs needed to update the property definition."""
+  updatePropertyDefinition(input: UpdatePropertyDefinitionInput!): UpdatePropertyDefinitionPayload
+  """Updates a property definition collection.
+@param {UpdatePropertyDefinitionCollectionInput} input - The inputs needed to update a property definition collection."""
+  updatePropertyDefinitionCollection(input: UpdatePropertyDefinitionCollectionInput!): UpdatePropertyDefinitionCollectionPayload
+  """Links a property definition collection to a hub.
+@param {LinkPropertyDefinitionCollectionInput} input - The inputs needed to link the property definition collection."""
+  linkPropertyDefinitionCollection(input: LinkPropertyDefinitionCollectionInput): LinkPropertyDefinitionCollectionPayload
+  """Unlinks a property definition collection from a hub.
+@param {UnlinkPropertyDefinitionCollectionInput} input - The inputs needed to unlink the property definition collection."""
+  unlinkPropertyDefinitionCollection(input: UnlinkPropertyDefinitionCollectionInput): UnlinkPropertyDefinitionCollectionPayload
+  """Sets properties of a given target.
+@param {SetPropertiesInput} input - The inputs needed to set a property."""
+  setProperties(input: SetPropertiesInput!): SetPropertiesPayload
+  """Creates a property definition collection.
+@param {CreatePropertyDefinitionCollectionInput} input - The inputs needed to create a property definition collection."""
+  createPropertyDefinitionCollection(input: CreatePropertyDefinitionCollectionInput): CreatePropertyDefinitionCollectionPayload
+  """Add an EventListener to a Target.
+@param {AddEventListenerInput} input - Input object for adding an EventListener."""
+  addEventListener(input: AddEventListenerInput!): AddEventListenerPayload
+  """Update the expiration of a EventListener, to make sure that it is maintained and not removed.
+@param {UpdateEventListenerExpirationInput} input - Input object for updating the expiration."""
+  updateEventListenerExpiration(input: UpdateEventListenerExpirationInput!): UpdateEventListenerExpirationPayload
+  """Remove an EventListener to a Target.
+@param {RemoveEventListenerInput} input - ID of the EventListener to remove."""
+  removeEventListener(input: RemoveEventListenerInput!): RemoveEventListenerPayload
+  """Update description for given history change"""
+  updateHistoryChangeDescription(input: UpdateHistoryChangeDescriptionInput!): UpdateHistoryChangeDescriptionPayload!
+  """Assign the partNumber for given model
+@param {AssignPartNumberInput} input - Input object for updating the partNumber for given model."""
+  assignModelPartNumber(input: AssignPartNumberInput!): AssignPartNumberPayload!
+  """Set the given model as the primary in its part number group.
+@param {SetModelAsPrimaryInput} input - Input object for updating primary model."""
+  setModelAsPrimary(input: SetModelAsPrimaryInput): SetModelAsPrimaryPayload!
+  """Updated the component description
+@param {UpdateComponentDescriptionInput} input - Input object for updating description"""
+  updateComponentDescription(input: UpdateComponentDescriptionInput!): Component
+  """Create version for component"""
+  createVersionForComponent(input: CreateVersionForComponentInput): CreateVersionPayload
+  """Create version for item"""
+  createVersionForItem(input: CreateVersionForItemInput): CreateVersionPayload
+  """Create version"""
+  createVersion(input: CreateVersionInput): CreateVersionPayload
+  """Renumber Part Number Group (PNG) of a given Component.
+@param {RenumberPartNumberGroupInput} input - Input object for renumbering PNG."""
+  renumberPartNumberGroup(input: RenumberPartNumberGroupInput): RenumberPartNumberGroupPayload @deprecated(reason: "Use renumberComponent")
+  """Renumber the partNumber of a given Component.
+@param {RenumberComponentInput} input - Input object for renumbering a component."""
+  renumberComponent(input: RenumberComponentInput!): RenumberComponentPayload
+  """Updates localization resources for custom property definitions. Note: Base property localization resources are locked and cannot be modified.
+@param {UpdateLocalizationInput} input - Contains the property definition ID and locale-specific translations to update."""
+  updatePropertyDefinitionLocalization(input: UpdateLocalizationInput!): PropertyDefinition
+  """Updates localization resources for custom property definition collections. Note: Base property localization resources are locked and cannot be modified.
+@param {UpdateLocalizationInput} input - Contains the collection ID and locale-specific translations to update."""
+  updatePropertyDefinitionCollectionLocalization(input: UpdateLocalizationInput!): PropertyDefinitionCollection
+  """Create a project in a hub.
+@param {CreateProjectInput} input - Input for creating a project."""
+  createProject(input: CreateProjectInput!): CreateProjectPayload
+  """Add members to a hub.
+@param {AddHubMembersInput} input - Input object for adding members to hub."""
+  addHubMembers(input: AddHubMembersInput!): AddHubMembersPayload
+  """Resend hub invitation.
+@param {ResendHubInvitationInput} input - Input object for resending hub invitation to a member."""
+  resendHubInvitation(input: ResendHubInvitationInput!): ResendHubInvitationPayload
+  """Withdraw hub invitation.
+@param {WithdrawHubInvitationToMemberInput} input - Input object for withdrawing hub invitation to a member."""
+  withdrawHubInvitation(input: WithdrawHubInvitationInput!): WithdrawHubInvitationPayload
+  """Archive a project in a hub.
+@param {ArchiveProjectInput} input - Input for archiving a project in a hub."""
+  archiveProject(input: ArchiveProjectInput!): ArchiveProjectPayload
+  """Delete an archived project in a hub irreversibly.
+@param {DeleteProjectInput} input - Input for deleting a project in a hub."""
+  deleteProject(input: DeleteProjectInput!): DeleteProjectPayload
+  """Restore a project in a hub.
+@param {RestoreProjectInput} input - Input for restoring a project in a hub."""
+  restoreProject(input: RestoreProjectInput!): RestoreProjectPayload
+  """Activate a hub member.
+@param {ActivateHubMemberInput} input - Input object for activating a hub member."""
+  activateHubMember(input: ActivateHubMemberInput!): ActivateHubMemberPayload
+  """Deactivate a hub member.
+@param {DeactivateHubMemberInput} input - Input object for deactivating a hub member."""
+  deactivateHubMember(input: DeactivateHubMemberInput!): DeactivateHubMemberPayload
+  """Rename a project.
+@param {RenameProjectInput} input - Input object for renaming a project."""
+  renameProject(input: RenameProjectInput!): RenameProjectPayload
+  """Create design from a file.
+@param {CreateDesignFromFileInput} input - Input object for creating a design from file.
+
+**Supported file formats:** Alias Files (\*.wire), AutoCAD DWG Files (\*.dwg), Autodesk Eagle Files (\*.sch \*.brd \*.lbr), Autodesk Fusion Archive Files (\*.f3d \*.f3z \*.fsch \*.fbrd \*.flbr \*.f2t), Autodesk Inventor Files (\*.iam \*.ipt), CATIA V5 Files (\*.CATProduct \*.CATPart), DXF Files (\*.dxf), FBX Files (\*.fbx), IGES Files (\*.ige \*.iges \*.igs), JT Files (\*.jt), NX Files (\*.prt), OBJ Files (\*.obj), Parasolid Binary Files (\*.x\_b), Parasolid Text Files (\*.x\_t), Pro/ENGlNEER and Creo Parametric Files (\*.asm\* \*.prt\*), Pro/ENGlNEER Granite Files (\*.g), Pro/ENGlNEER Neutral Files (\*.neu\*), Rhino Files (\*.3dm), SAT/SMT Files (\*.sab \*.sat \*.smb \*.smt), SketchUp Files (\*.skp), SolidEdge Files (\*.par \*.asm \*.psm), SolidWorks Files (\*.prt \*.asm \*.sldprt \*.sldasm), STEP Files (\*.ste, \*.step \*.stp), STL Files (\*.stl), 123D Files (\*.123dx), 3MF Files (\*.3mf)"""
+  createDesignFromFile(input: CreateDesignFromFileInput!): CreateDesignFromFilePayload
+  """Change hub member role.
+@param {ChangeHubMemberRoleInput} input - Input object for changing a member's role in the hub."""
+  changeHubMemberRole(input: ChangeHubMemberRoleInput!): ChangeHubMemberRolePayload
+  """Create folder in a project or a sub-folder.
+@param {CreateFolderInput} input - Input object for creating a folder."""
+  createFolder(input: CreateFolderInput!): CreateFolderPayload
+  """Move folder from a project or folder to another project or folder.
+@param {MoveFolderInput} input - Input object for moving a folder."""
+  moveFolder(input: MoveFolderInput!): MoveFolderPayload
+  """Delete folder.
+@param {DeleteFolderInput} input - Input object for deleting a folder."""
+  deleteFolder(input: DeleteFolderInput!): DeleteFolderPayload
+  """Rename a folder in a project.
+@param {RenameFolderInput} input - Input object for renaming a folder in the project."""
+  renameFolder(input: RenameFolderInput!): RenameFolderPayload
+  """Add members to a project.
+@param {AddProjectMembersInput} input - Input object for adding members to a project."""
+  addProjectMembers(input: AddProjectMembersInput!): AddProjectMembersPayload
+  """Change the role of a project member.
+@param {ChangeProjectMemberRoleInput} input - Input object for changing project member role."""
+  changeProjectMemberRole(input: ChangeProjectMemberRoleInput!): ChangeProjectMemberRolePayload
+  """Remove one or more members from project.
+@param {RemoveProjectMembersInput} input - Input object for removing project members."""
+  removeProjectMembers(input: RemoveProjectMembersInput!): RemoveProjectMembersPayload
+  """Add folder members in a folder of a project.
+@param {AddFolderMembersInput} input - Input object for adding members to a folder."""
+  addFolderMembers(input: AddFolderMembersInput!): AddFolderMembersPayload
+  """Change the role of a folder member.
+@param {ChangeFolderMemberRoleInput} input - Input object for changing folder member role."""
+  changeFolderMemberRole(input: ChangeFolderMemberRoleInput!): ChangeFolderMemberRolePayload
+  """Remove one or more members from the folder.
+@param {RemoveFolderMembersInput} input - Input object for removing folder members."""
+  removeFolderMembers(input: RemoveFolderMembersInput!): RemoveFolderMembersPayload
+  """Copy a folder from a project or folder to another project or folder.
+@param {CopyFolderInput} input - Input object for copying a folder."""
+  copyFolder(input: CopyFolderInput!): CopyFolderPayload
+  """Add groups to a project.
+@param {AddGroupsToProjectInput} input - Input object for adding groups to a project."""
+  addGroupsToProject(input: AddGroupsToProjectInput!): AddGroupsToProjectPayload
+  """Add groups to a folder.
+@param {AddGroupsToFolderInput} input - Input object for adding groups to a folder."""
+  addGroupsToFolder(input: AddGroupsToFolderInput!): AddGroupsToFolderPayload
+  """Create a group of members.
+@param {CreateMembersGroupInput} input - input object for creating a group of members."""
+  createGroup(input: CreateGroupInput!): CreateGroupPayload
+  """Update group name and description.
+@param {UpdateGroupInput} input - Input object for updating group name and description."""
+  updateGroup(input: UpdateGroupInput!): UpdateGroupPayload
+  """Add members to a group.
+@param {AddGroupMembersInput} input - Input object for adding members to a group."""
+  addGroupMembers(input: AddGroupMembersInput!): AddGroupMembersPayload
+  """Change role of groups in a folder.
+@param {ChangeGroupsRoleInFolderInput} input - Input object for changing the role of groups in a folder."""
+  changeGroupsRoleInFolder(input: ChangeGroupsRoleInFolderInput!): ChangeGroupsRoleInFolderPayload
+  """Change role of groups in a project.
+@param {ChangeGroupsRoleInProjectInput} input - Input object for changing the role of groups in a project."""
+  changeGroupsRoleInProject(input: ChangeGroupsRoleInProjectInput!): ChangeGroupsRoleInProjectPayload
+  """Remove groups from a project.
+@param {RemoveGroupsFromProjectInput} input - Input object for removing groups from a project."""
+  removeGroupsFromProject(input: RemoveGroupsFromProjectInput!): RemoveGroupsFromProjectPayload
+  """Remove groups from a folder of a project..
+@param {RemoveGroupsFromFolderInput} input - Input object for removing groups from a folder."""
+  removeGroupsFromFolder(input: RemoveGroupsFromFolderInput!): RemoveGroupsFromFolderPayload
+  """Remove a member from the group.
+@param {RemoveGroupMemberInput} input - Input object for removing a group member."""
+  removeGroupMember(input: RemoveGroupMemberInput!): RemoveGroupMemberPayload
+  """Remove a workspace from a group.
+  @param {RemoveWorkspaceFromGroupInput} input - Input object for removing a workspace from a group."""
+  removeWorkspaceFromGroup(input: RemoveWorkspaceFromGroupInput!): RemoveWorkspaceFromGroupPayload
+}
+
+"""Derivative Service will trigger job for OutputFormatEnum like STEP, STL etc."""
+enum OutputFormatEnum {
+  """STEP Output Format."""
+  STEP
+  """STL Output Format."""
+  STL
+  """OBJ Output Format."""
+  OBJ
+}
+
+"""OutputFormat of the Derivative in the response."""
+enum OutputFormatResponseEnum {
+  """STEP Output Format."""
+  STEP
+  """STL Output Format."""
+  STL
+  """OBJ Output Format."""
+  OBJ
+  """MTL Output Format."""
+  MTL
+  """ZIP Output Format."""
+  ZIP
+}
+
+"""Contains information about the current page, when results are split into multiple pages."""
+type Pagination {
+  """The address of the next page, if one exists. If the current page is the last page, ``cursor`` is ``null``."""
+  cursor: String
+  """The number of items in the response page."""
+  pageSize: Int
+}
+
+"""Specifies how to split the response into multiple pages."""
+input PaginationInput {
+  cursor: String
+  limit: Int
+}
+
+"""A group of models joined with a common part number"""
+type PartNumberGroup {
+  """ID of the png product"""
+  componentId: ID! @deprecated(reason: "Please use component field instead.")
+  """The component associated to this Part Number Group."""
+  component: Component!
+  """Indicates whether user has access to PNG
+- ``true``: User has access
+- ``false``: User does not have access"""
+  isAccessible: Boolean
+  """Indicates whether the group exists
+- ``true``: Group exists
+- ``false``: Group does not exist"""
+  isExist: Boolean
+  """Indicates whether the part number is represented in collection
+- ``true``: Part number is represented
+- ``false``: Part number is not represented"""
+  isRepresented: Boolean
+  """Retrieves all Models that share the same part number"""
+  models(pagination: PaginationInput): Models
+  """The part number for this group"""
+  partNumber: String!
+}
+
+""" Represents the error details from the parts list processing """
+type PartsListError {
+  code: PartsListErrorEnum!
+  message: String!
+}
+
+"""Represents the error code from the parts list processing."""
+enum PartsListErrorEnum {
+  """The parts list is incomplete because of missing access permission."""
+  PERMISSION_DENIED
+  """The parts list is incomplete because of circular reference."""
+  CIRCULAR_REFERENCE
+}
+
+""" Represents a part within a component that does not have any child """
+type PartsListItem {
+  """A system-generated ID that uniquely identifies this object."""
+  id: ID!
+  """Retrieves computed properties present on this parts list item.
+Filter used for parts list generation is applied to this field."""
+  computedProperties: ComputedProperties
+  component: Component
+  """The root component from which the parts list is generated"""
+  partsListRoot: Component!
+  """The total quantity of this part used throughout the entire root component"""
+  quantityProperty: Property
+  """The unique identifier of this part in the whole parts list"""
+  sequenceNumber: Int!
+  """Details of any errors encountered during parts list processing"""
+  errors: [PartsListError!]
+}
+
+""" Represents a list of parts in a parts list """
+type PartsListItems {
+  pagination: Pagination
+  """An array of the parts"""
+  results: [PartsListItem]
+  status: PartsListStatusEnum!
+  """Aggregated total values of properties across all parts in the list"""
+  totals: ComputedProperties!
+  errors: [PartsListError!]
+}
+
+""" Represents the status of parts list processing """
+enum PartsListStatusEnum {
+  IN_PROGRESS
+  COMPLETE
+  ERROR
+}
+
+"""Represents a physical property of a model."""
+type PhysicalProperties {
+  """Indication whether the properties have been extracted, job running, error or completed successfully."""
+  status: PhysicalPropertyStatusEnum!
+  """Physical property : Area."""
+  area: Property
+  """Physical property : Volume."""
+  volume: Property
+  """Physical property : Density."""
+  density: Property
+  """Physical property : Mass."""
+  mass: Property
+  """The bounding box of the model, in system units (cm), relative to XXX coordinate system."""
+  boundingBox: BoundingBox3D
+}
+
+"""Physical Property generation status."""
+enum PhysicalPropertyStatusEnum {
+  """PhysicalProperty generation job scheduled."""
+  SCHEDULED
+  """PhysicalProperty generation job is waiting for getting scheduled."""
+  QUEUED
+  """PhysicalProperty generation job is in execution."""
+  IN_PROGRESS
+  """PhysicalProperty generation job completed."""
+  COMPLETED
+  """PhysicalProperty generation job failed, job gets auto submit again."""
+  FAILED
+  """PhysicalProperty generation job cancelled, job gets auto submit again."""
+  CANCELLED
+}
+
+"""Represents a predefined value option for a property."""
+type PicklistOption {
+  """Unique identifier of picklist option."""
+  id: ID!
+  """Localized name of picklist option."""
+  localizedName: String
+  """Name of picklist option."""
+  name: String!
+}
+
+"""Represents a project.
+
+A project is a shared workspace for teams of people working together on a project, to store, organize, and manage all related entity data."""
+type Project {
+  """The ID that uniquely identifies the project."""
+  id: ID!
+  """The name of the project."""
+  name: String
+  """An object representing the hub that contains this project."""
+  hub: Hub
+  """Alternative identifiers for this project."""
+  alternativeIdentifiers: ProjectAlternativeIdentifiers
+  """The top-level folders within the project.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages.
+@param {FolderFilterInput=} filter - Specifies how to filter on folders."""
+  folders(pagination: PaginationInput, filter: FolderFilterInput): Folders
+  """The top-level items within the project.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages.
+@param {ItemFilterInput=} filter - Specifies how to filter the content of a folder."""
+  items(pagination: PaginationInput, filter: ItemFilterInput): Items
+  """Fusion Team URL of the project."""
+  fusionWebUrl: Url
+  """Thumbnail URL of the project."""
+  thumbnailUrl: Url
+  """The type of the project."""
+  projectType: ProjectTypesEnum @deprecated(reason: "All projects are now FOLDER_LEVEL. New projects can only be created as FOLDER_LEVEL, and existing projects are being migrated.")
+  """Status of a project."""
+  projectStatus: ProjectStatusEnum
+  """An object representing the members of a project, with additional details"""
+  members(filter: FolderMemberFilterInput, pagination: PaginationInput): ProjectMembers
+  """An object representing the groups in this project."""
+  groups(filter: GroupsFilterInput, pagination: PaginationInput): Groups
+}
+
+"""Alternative ways of referencing a project."""
+type ProjectAlternativeIdentifiers {
+  """The ID of this project when accessing it through forgeDM."""
+  dataManagementAPIProjectId: ID!
+}
+
+"""Specifies how to filter projects."""
+input ProjectFilterInput {
+  name: String
+}
+
+"""An object representing a member of a project."""
+type ProjectMember {
+  """An object representing the project that the user is a member of."""
+  project: Project!
+  """Role of the member in the project."""
+  role: FolderRoleEnum!
+  """The status of the project member."""
+  status: FolderMemberStatus!
+  """Basic details of the user."""
+  user: User!
+  """Profile Picture of the user"""
+  avatarUrl: Url
+  """The display name of the user"""
+  displayName: String
+}
+
+"""Types of project member roles."""
+enum ProjectMemberRoleEnum {
+  """Editor of the project."""
+  EDITOR
+  """Admin of the project."""
+  PROJECT_ADMIN
+  """Viewer of the project."""
+  VIEWER
+}
+
+"""Represents pagination and result of list of project members."""
+type ProjectMembers {
+  """Contains information about the next page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing project members."""
+  results: [ProjectMember!]
+}
+
+"""Contains a list of projects returned in response to a query."""
+type Projects {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """An array that contains objects representing projects."""
+  results: [Project]!
+}
+
+"""Types of project status."""
+enum ProjectStatusEnum {
+  """Project is active. Project is visible in a hub and operations can be performed."""
+  ACTIVE
+  """Project is inactive. Project was archived and can be restored by admin of the hub."""
+  INACTIVE
+}
+
+"""Projects have different levels of visibility on the hub, content privacy, and membership restrictions based on the project type."""
+enum ProjectTypesEnum {
+  """Projects of OPEN project type are visible and accessible only to Team Members."""
+  OPEN
+  """Projects of CLOSED project type are visible to Team Members and accessible only to project members."""
+  CLOSED
+  """Projects of SECRET project type are visible and accessible only to project members."""
+  SECRET
+  """FOLDER_LEVEL project type.
+Members can be added through invitation only. Member and group roles can be applied to the entire project, specific folders, or sub folders.
+Note: The Folder-Level security type cannot be changed after creating a Folder-Level project."""
+  FOLDER_LEVEL
+}
+
+"""Object representing list of Properties."""
+type Properties {
+  """An array of Properties."""
+  results: [Property]!
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+}
+
+"""Object representing the Changes that occurred to properties on a Component."""
+type PropertiesUpdatedHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The list of properties that were changed."""
+  properties: [Property]!
+  """The component the properties were updated on."""
+  component: Component
+}
+
+"""Data object that represents property."""
+type Property implements IProperty {
+  """Human readable name for a Property."""
+  name: String!
+  """Display value of the property."""
+  displayValue: String
+  """Value of the property."""
+  value: PropertyValue
+  """Data object that represents property definition."""
+  definition: PropertyDefinition!
+}
+
+"""Supported property behaviors"""
+enum PropertyBehaviorEnum {
+  """Properties that affect the form, fit, or function of an entity. If values are changed, a “new version” of the entity is created."""
+  STANDARD
+  """Properties that are applied at the 'lineage' of an entity. Only one value of property exists at any given time for all versions/revisions of an entity and changes to value does not require a revision."""
+  TIMELESS
+}
+
+"""Data object that represents property definition.
+
+Property definition is an object that acts as a template to create properties on an entity."""
+type PropertyDefinition {
+  """Name for this property definition."""
+  name: String!
+  """Specification of the property definition. It represents the data type of a property definition."""
+  specification: String
+  """Unit of a property definition."""
+  units: Units
+  """The ID of property definition."""
+  id: ID!
+  """Behavior of property definition."""
+  propertyBehavior: PropertyBehaviorEnum!
+  """A short description of the property definition."""
+  description: String
+  """Indicates if the parameter is hidden or not in the application."""
+  isHidden: Boolean
+  """``true`` : The property definition is archived.
+
+``false`` : The property definition is active."""
+  isArchived: Boolean
+  """Indicates if the parameter is read-only or not in the application."""
+  isReadOnly: Boolean
+  """Specifies expected behavior for the property on document data management operation like 'copy' in Autodesk authoring apps. A value of 'true' means the property will be copied along to the new document on such operations."""
+  shouldCopy: Boolean
+  """Indicates if the parameter should be displayed in the summary section of Fusion Team."""
+  shouldDisplayInSummary: Boolean
+  """Applicable entities of the property definition."""
+  applicableEntityTypes: [PropertyEntityTypeEnum]
+  """Property definition collection in which this property definition is present."""
+  collection: PropertyDefinitionCollection
+  """Dependent Property IDs of Property definition for computed Properties."""
+  dependentPropertyIds: [ID!]
+  """Indicates whether the Property Definition is searchable."""
+  isSearchable: Boolean
+  """Localized name of this property definition."""
+  localizedName: String!
+  """Predefined list of values for this property."""
+  picklistOptions: [PicklistOption!]
+  """Retrieves localization resources for this property definition collection.
+@param {LocalesFilterInput=} filter - Specifies which language locales to return."""
+  localizations(filter: LocalesFilterInput): [LocalizationRecord!]!
+}
+
+"""Specifies attribute-based filters for property definitions. All provided filters are combined with AND logic."""
+input PropertyDefinitionAttributeFilterInput {
+  specification: [PropertySpecificationEnum!]
+  isHidden: Boolean
+  shouldCopy: Boolean
+}
+
+"""Data object that represents property definition collection."""
+type PropertyDefinitionCollection {
+  """The ID of this property definition collection."""
+  id: ID!
+  """Name for this property definition collection."""
+  name: String!
+  """Localized name of this property definition collection."""
+  localizedName: String!
+  """Description for this property definition collection."""
+  description: String
+  """Get all Property Definitions of this Collection.
+@param {PropertyDefinitionFilterInput=} filter - Specifies how to filter on Property Definitions.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  definitions(filter: PropertyDefinitionFilterInput, sort: PropertyDefinitionSortInput, pagination: PaginationInput): PropertyDefinitions
+  """Retrieves localization resources for this property definition.
+@param {LocalesFilterInput=} filter - Specifies which language locales to return."""
+  localizations(filter: LocalesFilterInput): [LocalizationRecord!]!
+}
+
+"""Specifies how to filter property definition collections."""
+input PropertyDefinitionCollectionFilterInput {
+  id: [ID!]
+}
+
+"""Contains a list of Property Definition Collections returned in response to a query."""
+type PropertyDefinitionCollections {
+  """An array of Property Definition Collections."""
+  results: [PropertyDefinitionCollection]!
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+}
+
+"""Specifies how to filter property definitions. When 'ids' is provided with a non-empty array, all other filters will be ignored. Otherwise, all provided filters are combined with AND logic."""
+input PropertyDefinitionFilterInput {
+  ids: [ID!]
+  name: String
+  attributes: PropertyDefinitionAttributeFilterInput
+}
+
+"""Input required for creating property definition."""
+input PropertyDefinitionInput {
+  name: String!
+  propertyBehavior: PropertyBehaviorEnum!
+  specification: PropertySpecificationEnum!
+  isReadOnly: Boolean
+  isHidden: Boolean
+  description: String
+  shouldCopy: Boolean
+  isArchived: Boolean
+}
+
+"""List of property definitions."""
+type PropertyDefinitions {
+  """An array of property definition."""
+  results: [PropertyDefinition]!
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+}
+
+"""Specifies the field to sort property definition by."""
+enum PropertyDefinitionSortFieldEnum {
+  """Sort by property definition name."""
+  NAME
+}
+
+"""Specifies how to sort property definitions."""
+input PropertyDefinitionSortInput {
+  field: PropertyDefinitionSortFieldEnum!
+  order: SortOrderEnum
+}
+
+"""Supported property categories"""
+enum PropertyEntityTypeEnum {
+  """Category for Component Properties."""
+  COMPONENT
+  """Category for Drawing Properties."""
+  DRAWING
+  """Category for Model Properties."""
+  MODEL
+  """Category for BOMRelation Properties"""
+  BOMRELATION
+}
+
+"""Specifies how to filter property."""
+input PropertyFilterInput {
+  ids: [ID!]
+  names: [String!]
+}
+
+"""Input for set property."""
+input PropertyInput {
+  propertyDefinitionId: ID!
+  value: PropertyValue
+}
+
+input PropertyNameValuePair {
+  PropertyQuery: [String!]
+  searchableProperty: ID!
+}
+
+"""Supported property specifications"""
+enum PropertySpecificationEnum {
+  """Property Specification for String."""
+  STRING
+  """Property Specification for Integer."""
+  INTEGER
+  """Property Specification for Boolean."""
+  BOOLEAN
+  """Property Specification for Float."""
+  FLOAT
+  """Property Specification for Distance."""
+  DISTANCE
+  """Property Specification for Density."""
+  DENSITY
+  """Property Specification for Mass."""
+  MASS
+  """Property Specification for Volume."""
+  VOLUME
+  """Property Specification for Area."""
+  AREA
+}
+
+"""Custom scalar which represents custom property values."""
+scalar PropertyValue
+
+"""A data object that represents PubNub credentials."""
+type PubNubCredentials {
+  """PubNub subscription key associated to the user."""
+  subscriptionKey: String!
+  """PubNub cipher key associated to the user."""
+  cipherKey: String!
+}
+
+"""The entry-point for Autodesk entity queries. This acts as the top-level API from which all queries must start."""
+type Query {
+  """Retrieves an object representing a hub.
+
+A Hub is a container of projects, shared resources, and users with a common context.
+@param {ID} hubId - The ID of the hub to return."""
+  hub(hubId: ID!): Hub
+  """Retrieves an object representing a hub by its external id.
+
+A Hub is a container of projects, shared resources, and users with a common context.
+@param {ID} dataManagementAPIHubId - The external ID of the hub to return."""
+  hubByDataManagementAPIId(dataManagementAPIHubId: ID!): Hub
+  """Retrieves all hubs that match the specified criteria.
+
+A Hub is a container of projects, shared resources, and users with a common context.
+@param {HubFilterInput=} filter - Specifies how to filter a list of hubs. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  hubs(filter: HubFilterInput, pagination: PaginationInput): Hubs
+  """Retrieves an object representing a project from a specified hub.
+
+A project is a shared workspace for teams of people to store, organize, and manage all related design data.
+@param {ID} projectId - The ID of the project to retrieve."""
+  project(projectId: ID!): Project
+  """Retrieves an object representing a project by its external id.
+
+A project is a shared workspace for teams of people to store, organize, and manage all related design data.
+@param {ID} dataManagementAPIProjectId - The external ID of the project to retrieve."""
+  projectByDataManagementAPIId(dataManagementAPIProjectId: ID!): Project
+  """Retrieves all projects that match the specified filter criteria from a specified hub.
+@param {ID} hubId - The ID of the hub that contains the projects.
+@param {ProjectFilterInput=} filter - Specifies how to filter a list of projects. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  projects(hubId: ID!, filter: ProjectFilterInput, pagination: PaginationInput): Projects
+  """Retrieve folder specified by the provided Id.
+@param {ID} projectId - The ID of the project that contains the item.
+@param {ID} folderId - The ID of the item to retrieve."""
+  folder(projectId: ID!, folderId: ID!): Folder
+  """Retrieve folder specified by the provided Id.
+@param {ID} hubId - The ID of the Hub that contains the item.
+@param {ID} folderId - The ID of the item to retrieve."""
+  folderByHubId(hubId: ID!, folderId: ID!): Folder
+  """Retrieves all subfolders within a specified folder that meet the filter criteria specified by the ``filter`` argument.
+@param {ID} projectId - The ID of the project that contains the items.
+@param {ID} folderId - The ID of the folder that contains the subfolders.
+@param {FolderFilterInput=} filter - Specifies how to filter on folders. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  foldersByFolder(projectId: ID!, folderId: ID!, filter: FolderFilterInput, pagination: PaginationInput): Folders
+  """Retrieves all subfolders within a specified folder that meet the filter criteria specified by the ``filter`` argument.
+@param {ID} hubId - The ID of the Hub that contains the item.
+@param {ID} folderId - The ID of the folder that contains the subfolders.
+@param {FolderFilterInput=} filter - Specifies how to filter on folders. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  foldersByFolderInHub(hubId: ID!, folderId: ID!, filter: FolderFilterInput, pagination: PaginationInput): Folders
+  """Retrieves all top level folders under a specified project that meet the filter criteria specified by the ``filter`` argument.
+@param {ID} projectId - The ID of the project that contains the items.
+@param {FolderFilterInput=} filter - Specifies how to filter on folders. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  foldersByProject(projectId: ID!, filter: FolderFilterInput, pagination: PaginationInput): Folders
+  """Retrieves an object representing an item.
+
+An item refers to a file or sub-folder that exists within a folder.
+@param {ID} hubId - The ID of the Hub that contains the item.
+@param {ID} itemId - The ID of the item to retrieve."""
+  item(hubId: ID!, itemId: ID!): Item
+  """Retrieves all items within a specified folder that meet the filter criteria specified by the ``filter`` argument.
+@param {ID} hubId - The ID of the Hub that contains the item.
+@param {ID} folderId - The ID of the folder that contains the items.
+@param {ItemFilterInput=} filter - Specifies how to filter the content of a folder. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  itemsByFolder(hubId: ID!, folderId: ID!, filter: ItemFilterInput, pagination: PaginationInput): Items
+  """Retrieves all top level items under a specified project that meet the filter criteria specified by the ``filter`` argument.
+@param {ID} projectId - The ID of the project that contains the items.
+@param {ItemFilterInput=} filter - Specifies how to filter the content of a folder. You can filter by name.
+@param {PaginationInput=} pagination - Specifies how to split the response into multiple pages."""
+  itemsByProject(projectId: ID!, filter: ItemFilterInput, pagination: PaginationInput): Items
+  """Retrieves application information of APS Application based on Authentication token."""
+  application: Application
+  """Retrieves a Component based on the specified component ID and component state. State of the component can be provided with:
+- composition and time arguments or,
+- state argument
+If component state is provided by both options, the query will be considered as invalid."""
+  component(componentId: ID!, composition: BOMCompositionEnum = WORKING, time: DateTime, state: String): Component
+  """Retrieves and compare a Component to a model. Intended for the root component only.
+@param {CompareComponentInput} source - source component.
+@param {CompareComponentInput} target - target input with either model or component. Only model is supported for now.
+@param {CompareComponentFilterInput} filter - filter results based on primary reason enums"""
+  compareComponent(source: CompareComponentInput!, target: CompareTargetInput!, filter: CompareComponentFilterInput): CompareComponentResult
+  """Retrieves a Component and compare based on the specified state string.
+@param {String} state - toComponentState string from a previously queried BOMRelation object. Should be used to continue traversal of subsequent level. Includes compare parameters and filter from the initial query."""
+  componentFromState(state: String!): Component
+  """Retrieves Components in bulk based on the list of specified Component inputs."""
+  bulkComponents(input: [BulkComponentsQueryInput!]!): [BulkComponentsQueryResponse]
+  """Retrieves Components in bulk based on the state of the Component inputs."""
+  bulkComponentFromState(input: [BulkComponentFromStateQueryInput!]!): [BulkComponentFromStateQueryResponse]
+  """A query to retrieve a Model at time"""
+  model(modelId: ID!, composition: AssemblyCompositionEnum = WORKING, time: DateTime): Model
+  """Retrieves Models in bulk - with one-to-one input and output semantics,
+allowing for direct mapping of data."""
+  bulkModels(input: [BulkModelsQueryInput!]!): [BulkModelsQueryResponse]
+  drawing(drawingId: ID!, time: DateTime): Drawing
+  """A query to retrieve a Version."""
+  version(versionId: ID!): Version
+  """A query to retrieve a HistoryChange by its id"""
+  historyChange(historyChangeId: ID!): HistoryChange
+  """Performs a hub-wide search across supported entity types.
+Filter control via SearchResultTypeEnum - COMPONENT, MODEL, FOLDER, FILE(DesignItem, DrawingItem, BasicItem, ConfiguredDesignItem)
+@param {ID!} hubId (required) - The hub to search within.
+@param {SearchInput} searchCriteria - Please specify either query or searchFields.
+- query: Free-text query string. There’s no explicit maximum length enforced for the search query string.
+- searchFields: [PropertyNameValuePair] to match by specific searchable properties (values OR'ed within a property & AND'ed across different searchFields entries).
+- desiredSearchResultTypes: [SearchResultTypeEnum] to restrict result types in Search Results; If empty or omitted, ALL supported types are returned by default (COMPONENT, MODEL, FILE, FOLDER).
+- sort: [Sort] to order results by a propertyId in ASC/DESC order.
+@param {PaginationInput} pagination (optional) - Cursor-based pagination (cursor, limit). Default pagination limit is 20 if not provided
+Returns SearchPayload with:
+- pagination: cursor and page size,
+- SearchPayload:
+- results: display name, optional thumbnail, match highlights, and the matched object (union).
+- SearchResultMatch { matchedPropertyId: ID!, matchedText: String! }"""
+  searchByHub(hubId: ID!, searchCriteria: SearchInput, pagination: PaginationInput): SearchPayload
+  """Retrieves the list of searchable properties based for this hub.
+@param {ID} hubId - ID for the hub from which you need to retrieve the components.
+@param {PaginationInput} pagination - The pagination for this particular search."""
+  searchablePropertiesByHub(hubId: ID!, pagination: PaginationInput): SearchableProperties
+  """Retrieves BOMRelation based on specified bomRelationId and state.
+@param {ID} bomRelationId - ID of the BOM Relation.
+@param {String} state - toComponentState string from a previously queried BOMRelation object."""
+  bomRelationFromState(bomRelationId: ID!, state: String): BOMRelation
+  """Retrieves BOMRelations in bulk based on the list of specified inputs."""
+  bulkBomRelationsFromState(input: [BulkBomRelationsFromStateQueryInput!]!): [BulkBomRelationsQueryResponse]
+  """Retrieves API configuration settings for the specified API names.
+@param {ApiConfigurationInfoInput} input - Input object containing the list of API names to retrieve configuration information for."""
+  apiConfigurationInfo(input: ApiConfigurationInfoInput): [ApiConfigurationInfoPayload]!
+  """Export status of a file.
+@param {ExportStatusOfFileInput} input - Input object for getting the export status of a file."""
+  exportStatusOfFile(input: ExportStatusOfFileInput): ExportStatusOfFilePayload
+  """Retrieves an object representing a Group from a specified hub.
+@param {ID} hubId - The ID of the hub that contains the group.
+@param {ID} groupId - The ID of the group to retrieve."""
+  group(hubId: ID!, groupId: ID!): Group
+  """Retrieves all available roles for a specific workspace in a hub.
+@param {ID} hubId - The ID of the hub that contains the workspace.
+@param {String} workspaceUrn - The URN of the workspace to get roles for.
+@param {PaginationInput} pagination - Specifies how to paginate through the workspace roles."""
+  workspaceRoles(hubId: ID!, workspaceUrn: String!, pagination: PaginationInput): WorkspaceRoles!
+}
+
+"""input object for quick release"""
+input QuickReleaseInput {
+  componentId: ID!
+  lockTime: DateTime
+}
+
+"""Represents the different regions where Autodesk data can be stored."""
+enum Region {
+  """Europe, Middle East, and Africa"""
+  EMEA
+  """Australia"""
+  AUS
+  """United States"""
+  US
+  """India"""
+  IND
+  """Canada"""
+  CAN
+  """Germany"""
+  DEU
+  """Great Britain"""
+  GBR
+  """Japan"""
+  JPN
+}
+
+"""The type of Release states"""
+enum ReleaseStateEnum {
+  """Version is not released."""
+  UNRELEASED
+  """Version is not yet released."""
+  PENDING_RELEASE
+  """Version is released."""
+  RELEASED
+}
+
+"""Input object for removing an EventListener."""
+input RemoveEventListenerInput {
+  eventListenerId: ID!
+}
+
+"""Return payload for removing an EventListener."""
+type RemoveEventListenerPayload {
+  """Status of the remove event listener operation."""
+  success: Boolean!
+}
+
+"""Input object for removing folder members."""
+input RemoveFolderMembersInput {
+  projectId: ID!
+  emailAddresses: [EmailAddress!]!
+  folderId: ID!
+}
+
+"""Return payload on removing folder members operation."""
+type RemoveFolderMembersPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for remove from ECO"""
+input RemoveFromEcoInput {
+  id: ID!
+}
+
+"""Input object for removing a member from a group."""
+input RemoveGroupMemberInput {
+  hubId: ID!
+  groupId: ID!
+  emailAddress: EmailAddress!
+}
+
+"""Return payload on remove a member from a group operation."""
+type RemoveGroupMemberPayload {
+  """Object representing the Group."""
+  group: Group!
+}
+
+"""Input object for removing groups from a folder."""
+input RemoveGroupsFromFolderInput {
+  projectId: ID!
+  folderId: ID!
+  groupIds: [ID!]!
+}
+
+"""Return payload for remove groups from folder operation."""
+type RemoveGroupsFromFolderPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for removing groups from a project."""
+input RemoveGroupsFromProjectInput {
+  projectId: ID!
+  groupIds: [ID!]!
+}
+
+"""Return payload for remove groups from project operation."""
+type RemoveGroupsFromProjectPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input object for removing project members."""
+input RemoveProjectMembersInput {
+  emailAddresses: [EmailAddress!]!
+  projectId: ID!
+}
+
+"""Return payload on removing project members operation."""
+type RemoveProjectMembersPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input object for removing workspace from a group."""
+input RemoveWorkspaceFromGroupInput {
+  hubId: ID!
+  groupId: ID!
+  workspaceUrn: String!
+}
+
+"""Return payload on removing workspace from a group operation."""
+type RemoveWorkspaceFromGroupPayload {
+  """Object representing a Group."""
+  group: Group!
+}
+
+"""Input object for renaming a folder."""
+input RenameFolderInput {
+  projectId: ID!
+  folderId: ID!
+  name: String!
+}
+
+"""Return payload on rename folder operation."""
+type RenameFolderPayload {
+  """Object representing the folder."""
+  folder: Folder
+}
+
+"""Input object for renaming a project."""
+input RenameProjectInput {
+  projectId: ID!
+  name: String!
+}
+
+"""Return payload on rename project operation."""
+type RenameProjectPayload {
+  """Object representing the project."""
+  project: Project
+}
+
+"""Input object for renumberComponent."""
+input RenumberComponentInput {
+  componentId: ID!
+  partNumber: String!
+}
+
+"""Return payload for renumberComponent."""
+type RenumberComponentPayload {
+  """The updated Component"""
+  component: Component!
+}
+
+"""Input object for renumbering PNG."""
+input RenumberPartNumberGroupInput {
+  componentId: ID!
+  partNumber: String!
+}
+
+"""Return payload for renumber PNG."""
+type RenumberPartNumberGroupPayload {
+  """The updated Component"""
+  component: Component!
+}
+
+"""Input object to resend hub invitation."""
+input ResendHubInvitationInput {
+  emailAddress: EmailAddress!
+  hubId: ID!
+  captchaToken: String
+}
+
+"""Return payload on resend hub invitation operation."""
+type ResendHubInvitationPayload {
+  """Object representing the hub."""
+  hub: Hub
+  """Object representing the hub member."""
+  member: HubMember
+}
+
+"""Input for restoring a project in a hub."""
+input RestoreProjectInput {
+  projectId: ID!
+}
+
+"""Return payload for restoring a project operation."""
+type RestoreProjectPayload {
+  """An object representing the project that was updated."""
+  project: Project
+}
+
+"""Revision object capturing the date for item under the revision and released item"""
+type Revision {
+  """User that created revision"""
+  createdBy: User!
+  """Timestamp when revision is created"""
+  createdOn: DateTime!
+  """When released changes are effective for consumption"""
+  effectiveOn: DateTime
+  """When released changes are superseded"""
+  supersededOn: DateTime
+  """Timestamp of last modification"""
+  lastModifiedOn: DateTime!
+  """Last user modifying the revision"""
+  modifiedBy: User!
+}
+
+"""Object representing the Changes that occurred when a Revision was created."""
+type RevisionCreatedHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The revision associated with the history change."""
+  revision: Revision
+}
+
+"""Represents pagination and result of list of SearchableProperties."""
+type SearchableProperties {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """Represents the list of searchable properties."""
+  results: [SearchableProperty!]!
+}
+
+type SearchableProperty {
+  """The display name to use for this property in user experiences"""
+  displayName: String!
+  """The property definition for this search property"""
+  propertyDefinition: PropertyDefinition!
+  """The order in which these properties should be displayed in a user experience"""
+  propertyOrder: Int!
+}
+
+input SearchInput {
+  query: String
+  searchFields: [PropertyNameValuePair]
+  desiredSearchResultTypes: [SearchResultTypeEnum]
+  sort: [Sort]
+}
+
+type SearchPayload {
+  pagination: Pagination!
+  """List of results that matched the criteria """
+  results: [SearchResult!]!
+}
+
+type SearchResult {
+  """The reason we matched this particular item.  This can be used to show highlights in the UI."""
+  matches: [SearchResultMatch!]!
+  """The search result name that should be shown to the user. This is surfaced to the root of the search result object to give us the ability to provide the caller a hint on what should be displayed to the user regardless of the object type returned in the union."""
+  name: String!
+  searchResultObject: SearchResultObjectUnion!
+  """The relevancy score from the underlying search system. This value is calculated at the time of the query and will change over time as more data is added to the search system. Higher values indicate more relevant results. The score can be null if the underlying search system did not compute a score for this result."""
+  score: Float
+  """Not all search result objects have a thumbnail associated with them, surfacing this to the root of the search result object gives us the ability to provide the caller a thumbnail that can be displayed """
+  thumbnail: Thumbnail
+}
+
+type SearchResultMatch {
+  """The property id on which this match occurred. """
+  matchedPropertyId: ID!
+  """The match text including highlight indicators """
+  matchedText: String!
+}
+
+"""In the future we could add a CompoundObject here that supports a composition of multiple types of objects.  That compound object would look something like `SearchResult` """
+union SearchResultObjectUnion = Component | Folder | Model | BasicItem | DesignItem | DrawingItem | ConfiguredDesignItem
+
+enum SearchResultTypeEnum {
+  COMPONENT
+  FILE
+  FOLDER
+  MODEL
+}
+
+"""Input object for assign primary."""
+input SetModelAsPrimaryInput {
+  modelId: ID!
+}
+
+"""Return payload for assign primary."""
+type SetModelAsPrimaryPayload {
+  """The updated model"""
+  model: Model!
+}
+
+"""Input required for setting a property value."""
+input SetPropertiesInput {
+  targetId: ID!
+  propertyInputs: [PropertyInput!]!
+}
+
+"""Return payload on set properties operation."""
+type SetPropertiesPayload {
+  """The ID of item on which properties are set.
+
+Target ID can be ID of any of the following item: Model, Component, Drawing."""
+  targetId: ID!
+  """Array of property objects that are set."""
+  properties: [Property!]!
+}
+
+input Sort {
+  order: SortOrderEnum
+  propertyId: ID!
+}
+
+enum SortOrderEnum {
+  ASC
+  DESC
+}
+
+"""Wrapper type for string values in API configuration parameters. This form is used to make the type compatible with unions."""
+type StringValue {
+  """The string configuration value."""
+  stringValue: String
+}
+
+"""An object representing a small image that depicts a view of a model."""
+type Thumbnail {
+  """The ID that uniquely identifies the thumbnail."""
+  id: ID!
+  """Indicates the status of the thumbnail generation process."""
+  status: ThumbnailStatusEnum!
+  """The URL to the thumbnail."""
+  signedUrl: String
+  """Epoch time stamp indicating when the signedUrl expires."""
+  expires: String
+}
+
+"""The thumbnail's availability states."""
+enum ThumbnailStatusEnum {
+  """Thumbnail generation in progress."""
+  IN_PROGRESS
+  """Thumbnail generation is successful."""
+  SUCCESS
+  """Thumbnail generation is pending."""
+  PENDING
+  """Thumbnail generation failed."""
+  FAILED
+  """Thumbnail generation process timed out."""
+  TIMEOUT
+}
+
+"""Represents the unit of measurement for a property."""
+type Units {
+  """Id of the corresponding unit."""
+  id: ID!
+  """Name of the corresponding unit."""
+  name: String!
+}
+
+"""Input object for unlinking a property definition collection from a hub."""
+input UnlinkPropertyDefinitionCollectionInput {
+  propertyDefinitionCollectionId: ID!
+  hubId: ID!
+}
+
+"""Response of ``unlink`` property definition collection operation."""
+type UnlinkPropertyDefinitionCollectionPayload {
+  """Object representing a hub."""
+  hub: Hub!
+  """Id of the property definition collection unlinked from the hub. """
+  propertyDefinitionCollectionId: ID!
+}
+
+input UpdateComponentDescriptionInput {
+  componentId: ID!
+  sessionId: ID
+  description: String!
+}
+
+"""Input object for updating an event subscription."""
+input UpdateEventListenerExpirationInput {
+  id: ID!
+  expiration: DateTime!
+}
+
+"""Return payload for updating an Event Subscription."""
+type UpdateEventListenerExpirationPayload {
+  """Status of the update event listener operation."""
+  success: Boolean!
+}
+
+"""Input object for updating a group name or description."""
+input UpdateGroupInput {
+  hubId: ID!
+  groupId: ID!
+  name: String
+  description: String
+}
+
+"""Return payload on update group operation."""
+type UpdateGroupPayload {
+  """Object representing the group."""
+  group: Group
+}
+
+"""Input object for updateHistoryChangeDescription"""
+input UpdateHistoryChangeDescriptionInput {
+  historyChangeId: ID!
+  description: String!
+}
+
+"""Return payload for updateHistoryChangeDescription."""
+type UpdateHistoryChangeDescriptionPayload {
+  """The updated HistoryChange"""
+  historyChange: HistoryChange!
+}
+
+"""Input for updating localization resources of custom property definitions or collections. Base property localization resources cannot be modified."""
+input UpdateLocalizationInput {
+  id: ID!
+  localizations: [LocalizationInput!]!
+}
+
+"""Input for updating property definition collection."""
+input UpdatePropertyDefinitionCollectionInput {
+  propertyDefinitionCollectionId: ID!
+  description: String!
+}
+
+"""Response of update property definition collection operation."""
+type UpdatePropertyDefinitionCollectionPayload {
+  """Updated property definition collection object."""
+  propertyDefinitionCollection: PropertyDefinitionCollection!
+}
+
+"""Input for updating a property definition."""
+input UpdatePropertyDefinitionInput {
+  propertyDefinitionId: ID!
+  description: String
+  isHidden: Boolean
+}
+
+"""Response of update property definition operation."""
+type UpdatePropertyDefinitionPayload {
+  """Updated PropertyDefinition Object."""
+  propertyDefinition: PropertyDefinition!
+}
+
+"""Scalar which represents URL."""
+scalar Url
+
+"""An object representing a User."""
+type User {
+  """The display name of the user."""
+  userName: String
+  """The ID that uniquely identifies the User."""
+  id: ID!
+  """The user’s first name."""
+  firstName: String
+  """The user’s last name."""
+  lastName: String
+  """The user’s email address."""
+  email: String
+  """The date and time the user’s information was last modified."""
+  lastModifiedOn: DateTime
+  """The date and time the user’s information was created."""
+  createdOn: DateTime
+}
+
+type Version {
+  """The ID that uniquely identifies the Version."""
+  id: ID!
+  """The timestamp of the Version."""
+  timestamp: DateTime!
+  """The description of the Version."""
+  description: String
+  """Indicates when this version was most recently modified."""
+  createdOn: DateTime!
+  """The user who created this version."""
+  createdBy: User
+  """Indicates when this version was most recently modified."""
+  lastModifiedOn: DateTime
+  """The user who most recently modified this version."""
+  lastModifiedBy: User
+  """The status of version."""
+  status: VersionStatusEnum!
+  """The component associated to this version."""
+  component: Component
+  """Describes whether the given version is unreleased, pending, or released"""
+  releaseState: ReleaseStateEnum!
+}
+
+"""Object representing the Changes that occurred when a Version was created."""
+type VersionCreatedHistoryChange implements HistoryChange {
+  """The ID of the history change entry."""
+  id: ID!
+  """When the history changes occurred."""
+  timeStamp: DateTime @deprecated(reason: "Please use timestamp(lowercase) field instead")
+  """When the history changes occurred."""
+  timestamp: DateTime
+  """The user that made the history change."""
+  author: User
+  """The description of the history change."""
+  description: String
+  """The version associated with the history change."""
+  version: Version!
+}
+
+"""The types of Version status"""
+enum VersionStatusEnum {
+  """When a version is being created."""
+  IN_PROGRESS
+  """When a version is completed."""
+  COMPLETE
+  """When a version has error."""
+  ERROR
+}
+
+"""Input object to withdraw hub invitation."""
+input WithdrawHubInvitationInput {
+  hubId: ID!
+  emailAddress: EmailAddress!
+  captchaToken: String
+}
+
+"""Return payload on withdraw hub invitation operation."""
+type WithdrawHubInvitationPayload {
+  """Object representing the hub."""
+  hub: Hub
+}
+
+"""Represents a workspace from Fusion Manage"""
+type Workspace {
+  """The hub that this workspace belongs to."""
+  hub: Hub!
+  """The metadata of the workspace"""
+  metadata: WorkspaceMetadata
+  """Name of the Workspace"""
+  name: String!
+  """URN of the Workspace"""
+  urn: String!
+}
+
+type WorkspaceAssignedRole {
+  """URN of the Role"""
+  urn: String!
+  """Short Name of the Workspace"""
+  shortName: String
+  """Short Name of the Workspace"""
+  longName: String
+  """URN of the workspace role belongs to"""
+  workspaceUrn: String
+}
+
+type WorkspaceAssignedRoles {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing workspaces."""
+  results: [WorkspaceAssignedRole!]!
+}
+
+"""Type WorkspaceMetadata represents additional information about the workspace and roles"""
+type WorkspaceMetadata {
+  """An object representing Roles of a Workspace"""
+  roles: [WorkspaceRole!]!
+  """System name of the workspace"""
+  systemName: String!
+}
+
+"""A role definition containing collections of workspace and workflow permissions that can be assigned to user groups in Fusion Manage."""
+type WorkspaceRole {
+  """Display name of the role, representing the collection of permissions it contains."""
+  name: String!
+  """Unique resource name (URN) used to reference this role when assigning permissions to user groups."""
+  urn: String!
+}
+
+"""Paginated collection of permission-based roles available for assignment to user groups within a specific workspace."""
+type WorkspaceRoles {
+  """Pagination metadata for navigating through the workspace roles results."""
+  pagination: Pagination
+  """Available permission roles for the workspace, each containing collections of workspace and workflow permissions that can be assigned to user groups."""
+  results: [WorkspaceRole!]!
+}
+
+type Workspaces {
+  """Contains information about the current page, when results are split into multiple pages."""
+  pagination: Pagination
+  """List of objects representing workspaces."""
+  results: [Workspace!]!
+}
+
+"""Input type for filtering workspaces."""
+input WorkspacesFilterInput {
+  name: String!
+}
+
