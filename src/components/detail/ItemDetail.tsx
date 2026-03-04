@@ -16,6 +16,7 @@ import type { NavNode } from '../../types/nav.types'
 
 interface ItemDetailProps {
   node: NavNode
+  onTypeResolved?: (typename: string) => void
 }
 
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -44,12 +45,18 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function ItemDetail({ node }: ItemDetailProps) {
+export function ItemDetail({ node, onTypeResolved }: ItemDetailProps) {
   const [fetchItem, { data, loading, error }] = useLazyQuery<any>(GET_ITEM_DETAIL)
 
   useEffect(() => {
     fetchItem({ variables: { hubId: node.hubId!, itemId: node.entityId } })
   }, [node.entityId, node.hubId, fetchItem])
+
+  useEffect(() => {
+    if (data?.item?.__typename) {
+      onTypeResolved?.(data.item.__typename)
+    }
+  }, [data, onTypeResolved])
 
   if (loading) {
     return (
