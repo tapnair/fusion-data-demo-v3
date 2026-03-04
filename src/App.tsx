@@ -65,7 +65,7 @@ function App() {
         <CssBaseline />
         <AuthProvider>
           <ApolloWrapper>
-          <Router>
+          <Router basename={import.meta.env.PROD ? '/fusion-data-demo-v3' : '/'}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/callback" element={<Callback />} />

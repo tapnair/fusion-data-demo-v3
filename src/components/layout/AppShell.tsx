@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box } from '@mui/material'
+import { Box, Snackbar, Alert } from '@mui/material'
 import { Header } from './Header'
 import { NavDrawer } from './NavDrawer'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
@@ -22,8 +22,11 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
   })
 
   const [filterV2Hubs, setFilterV2Hubs] = useState<boolean>(() => {
-    return localStorage.getItem(FILTER_V2_STORAGE_KEY) === 'true'
+    const stored = localStorage.getItem(FILTER_V2_STORAGE_KEY)
+    return stored !== null ? stored === 'true' : true
   })
+
+  const [showNonCeWarning, setShowNonCeWarning] = useState(false)
 
   const handleDrawerToggle = () => {
     setDrawerOpen(prev => {
@@ -36,6 +39,7 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
   const handleFilterV2HubsChange = (value: boolean) => {
     setFilterV2Hubs(value)
     localStorage.setItem(FILTER_V2_STORAGE_KEY, String(value))
+    if (!value) setShowNonCeWarning(true)
   }
 
   return (
@@ -64,6 +68,20 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
           {children}
         </Box>
       </Box>
+      <Snackbar
+        open={showNonCeWarning}
+        autoHideDuration={6000}
+        onClose={() => setShowNonCeWarning(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setShowNonCeWarning(false)}
+          sx={{ width: '100%' }}
+        >
+          Non-CE Hubs will not behave correctly in this application
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

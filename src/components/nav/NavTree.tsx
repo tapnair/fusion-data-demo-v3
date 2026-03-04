@@ -178,9 +178,15 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
   if (hubNodes.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          No hubs available
-        </Typography>
+        {filterV2Hubs ? (
+          <Typography variant="caption" color="warning.main">
+            You do not have access to any CE hubs. This application will not perform as expected.
+          </Typography>
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            No hubs available
+          </Typography>
+        )}
       </Box>
     )
   }

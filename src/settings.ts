@@ -22,6 +22,8 @@ const SETTINGS_VERSION = 1
 export interface AppSettings {
   /** IDs of BOM columns the user has chosen to display. */
   bomVisibleColumns?: string[]
+  /** Number of decimal places used when formatting physical property values (0–6). */
+  bomSigFigs?: number
 }
 
 const DEFAULTS: AppSettings = {

@@ -3,12 +3,70 @@ import { Box, Typography, IconButton, CircularProgress, Button, Skeleton, Popove
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import BrokenImageIcon from '@mui/icons-material/BrokenImage'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import { useBomThumbnail, WORKING_STATES } from '../../../../hooks/useBomThumbnail'
+import { useBomPhysicalProperties, PHYSICAL_PROPS_WORKING_STATES } from '../../../../hooks/useBomPhysicalProperties'
 import type { BomRow } from '../../../../types/bom.types'
 
 export interface BomCellContext {
   toggleRow: (row: BomRow) => void
   loadMore: (loadMoreRow: BomRow) => void
+  /** Decimal places used when formatting physical property displayValues (0–6). */
+  sigFigs: number
+}
+
+const UNIT_ABBREVIATIONS: Record<string, string> = {
+  // Mass
+  'kilograms': 'kg',
+  'grams': 'g',
+  'pounds': 'lb',
+  'ounces': 'oz',
+  // Length
+  'centimeters': 'cm',
+  'millimeters': 'mm',
+  'meters': 'm',
+  'inches': 'in',
+  'feet': 'ft',
+  // Volume
+  'cubic centimeters': 'cm³',
+  'cubic millimeters': 'mm³',
+  'cubic meters': 'm³',
+  'cubic inches': 'in³',
+  'cubic feet': 'ft³',
+  'liters': 'L',
+  // Area
+  'square centimeters': 'cm²',
+  'square millimeters': 'mm²',
+  'square meters': 'm²',
+  'square inches': 'in²',
+  'square feet': 'ft²',
+  // Density
+  'kilograms per cubic centimeter': 'kg/cm³',
+  'grams per cubic centimeter': 'g/cm³',
+  'kilograms per cubic meter': 'kg/m³',
+  'grams per cubic meter': 'g/m³',
+  'pounds per cubic inch': 'lb/in³',
+}
+
+/**
+ * Formats a physical property for display.
+ * Parses the numeric part from displayValue, applies decimalPlaces, and
+ * appends an abbreviated unit derived from definition.units.name.
+ */
+function formatDisplayValue(
+  displayValue: string | null,
+  unitName: string | null,
+  decimalPlaces: number
+): string | null {
+  if (!displayValue) return null
+  const match = displayValue.match(/^([-\d.]+)/)
+  if (!match) return displayValue
+  const num = parseFloat(match[1])
+  if (isNaN(num)) return displayValue
+  const formatted = num.toFixed(decimalPlaces)
+  if (!unitName) return formatted
+  const abbrev = UNIT_ABBREVIATIONS[unitName.toLowerCase()] ?? unitName
+  return `${formatted} ${abbrev}`
 }
 
 export interface BomColumnDef {
@@ -91,6 +149,106 @@ function BomThumbnailCell({ row }: { row: BomRow }) {
   return React.createElement(BomThumbnailCellInner, { row })
 }
 
+type PhysPropsAccessor = (physProps: any) => { displayValue: string | null; unitName: string | null } | null
+
+function BomPhysicalPropertiesCellInner({
+  row,
+  accessor,
+  sigFigs,
+}: {
+  row: BomRow
+  accessor: PhysPropsAccessor
+  sigFigs: number
+}) {
+  const { loading, error, physProps } = useBomPhysicalProperties(row.componentId, row.componentState)
+  const isWorking = physProps?.status && PHYSICAL_PROPS_WORKING_STATES.includes(physProps.status)
+  const isTerminalFailure = physProps?.status === 'FAILED' || physProps?.status === 'CANCELLED'
+
+  if (!loading && !error && physProps === null) return null
+
+  if (loading || isWorking) {
+    return React.createElement(CircularProgress, { size: 12, sx: { color: 'text.disabled' } })
+  }
+
+  if (error || isTerminalFailure) {
+    return React.createElement(ErrorOutlineIcon, { fontSize: 'small', sx: { color: 'text.disabled' } })
+  }
+
+  const result = accessor(physProps)
+  const value = result
+    ? formatDisplayValue(result.displayValue, result.unitName, sigFigs)
+    : null
+  if (!value) return null
+
+  return React.createElement(Typography, { variant: 'body2' }, value)
+}
+
+function BomPhysicalPropertiesCell({
+  row,
+  accessor,
+  sigFigs,
+}: {
+  row: BomRow
+  accessor: PhysPropsAccessor
+  sigFigs: number
+}) {
+  if (row.id.startsWith('load-more:')) return null
+  return React.createElement(
+    Box,
+    { sx: { display: 'flex', alignItems: 'center', height: '100%' } },
+    React.createElement(BomPhysicalPropertiesCellInner, { row, accessor, sigFigs })
+  )
+}
+
+function BomBoundingBoxCellInner({ row, sigFigs }: { row: BomRow; sigFigs: number }) {
+  const { loading, error, physProps } = useBomPhysicalProperties(row.componentId, row.componentState)
+  const isWorking = physProps?.status && PHYSICAL_PROPS_WORKING_STATES.includes(physProps.status)
+  const isTerminalFailure = physProps?.status === 'FAILED' || physProps?.status === 'CANCELLED'
+
+  if (!loading && !error && physProps === null) return null
+
+  if (loading || isWorking) {
+    return React.createElement(CircularProgress, { size: 12, sx: { color: 'text.disabled' } })
+  }
+
+  if (error || isTerminalFailure) {
+    return React.createElement(ErrorOutlineIcon, { fontSize: 'small', sx: { color: 'text.disabled' } })
+  }
+
+  const bb = physProps?.boundingBox
+  if (!bb) return null
+
+  const fmt = (prop: any) =>
+    formatDisplayValue(prop?.displayValue ?? null, prop?.definition?.units?.name ?? null, sigFigs)
+
+  const lines: string[] = [
+    fmt(bb.length),
+    fmt(bb.width),
+    fmt(bb.height),
+  ]
+    .filter((v): v is string => v !== null)
+    .map((v, i) => `${'LWH'[i]}: ${v}`)
+
+  if (!lines.length) return null
+
+  return React.createElement(
+    Box,
+    { sx: { lineHeight: 1.4 } },
+    ...lines.map(line =>
+      React.createElement(Typography, { key: line, variant: 'caption', display: 'block' }, line)
+    )
+  )
+}
+
+function BomBoundingBoxCell({ row, sigFigs }: { row: BomRow; sigFigs: number }) {
+  if (row.id.startsWith('load-more:')) return null
+  return React.createElement(
+    Box,
+    { sx: { display: 'flex', alignItems: 'center', height: '100%' } },
+    React.createElement(BomBoundingBoxCellInner, { row, sigFigs })
+  )
+}
+
 function BomNameCell({ row, ctx }: { row: BomRow; ctx: BomCellContext }) {
   if (row.id.startsWith('load-more:')) {
     return (
@@ -136,7 +294,7 @@ export const BOM_COLUMNS: BomColumnDef[] = [
   {
     id: 'thumbnail',
     header: 'Thumbnail',
-    width: 64,
+    width: 72,
     fetchOnDemand: true,
     getValue: () => null,
     renderCell: (row) => React.createElement(BomThumbnailCell, { row }),
@@ -158,14 +316,82 @@ export const BOM_COLUMNS: BomColumnDef[] = [
   {
     id: 'partNumber',
     header: 'P/N',
-    width: 160,
+    width: 220,
     getValue: (row) => row.partNumber,
   },
   {
     id: 'material',
     header: 'Material',
-    width: 160,
+    width: 120,
     getValue: (row) => row.materialName,
+  },
+  {
+    id: 'mass',
+    header: 'Mass',
+    width: 175,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) => React.createElement(BomPhysicalPropertiesCell, {
+      row,
+      accessor: (p: any) => ({
+        displayValue: p?.mass?.displayValue ?? null,
+        unitName: p?.mass?.definition?.units?.name ?? null,
+      }),
+      sigFigs: ctx.sigFigs,
+    }),
+  },
+  {
+    id: 'volume',
+    header: 'Volume',
+    width: 215,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) => React.createElement(BomPhysicalPropertiesCell, {
+      row,
+      accessor: (p: any) => ({
+        displayValue: p?.volume?.displayValue ?? null,
+        unitName: p?.volume?.definition?.units?.name ?? null,
+      }),
+      sigFigs: ctx.sigFigs,
+    }),
+  },
+  {
+    id: 'density',
+    header: 'Density',
+    width: 245,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) => React.createElement(BomPhysicalPropertiesCell, {
+      row,
+      accessor: (p: any) => ({
+        displayValue: p?.density?.displayValue ?? null,
+        unitName: p?.density?.definition?.units?.name ?? null,
+      }),
+      sigFigs: ctx.sigFigs,
+    }),
+  },
+  {
+    id: 'area',
+    header: 'Surface Area',
+    width: 200,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) => React.createElement(BomPhysicalPropertiesCell, {
+      row,
+      accessor: (p: any) => ({
+        displayValue: p?.area?.displayValue ?? null,
+        unitName: p?.area?.definition?.units?.name ?? null,
+      }),
+      sigFigs: ctx.sigFigs,
+    }),
+  },
+  {
+    id: 'boundingBox',
+    header: 'Bounding Box',
+    width: 160,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) => React.createElement(BomBoundingBoxCell, { row, sigFigs: ctx.sigFigs }),
   },
 ]
 

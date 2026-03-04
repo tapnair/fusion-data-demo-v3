@@ -30,14 +30,23 @@ export function BomTab({ node }: BomTabProps) {
     () => loadSettings().bomVisibleColumns ?? DEFAULT_VISIBLE_COLUMNS
   )
 
+  const [sigFigs, setSigFigs] = useState<number>(
+    () => loadSettings().bomSigFigs ?? 3
+  )
+
   const handleColumnChange = (ids: string[]) => {
     setVisibleColumnIds(ids)
     saveSettings({ bomVisibleColumns: ids })
   }
 
+  const handleSigFigsChange = (n: number) => {
+    setSigFigs(n)
+    saveSettings({ bomSigFigs: n })
+  }
+
   const cellContext: BomCellContext = useMemo(
-    () => ({ toggleRow, loadMore }),
-    [toggleRow, loadMore]
+    () => ({ toggleRow, loadMore, sigFigs }),
+    [toggleRow, loadMore, sigFigs]
   )
 
   const gridColumns: GridColDef[] = useMemo(
@@ -87,6 +96,8 @@ export function BomTab({ node }: BomTabProps) {
       <BomColumnSettings
         visibleColumnIds={visibleColumnIds}
         onChange={handleColumnChange}
+        sigFigs={sigFigs}
+        onSigFigsChange={handleSigFigsChange}
       />
       <DataGrid
         rows={rows}

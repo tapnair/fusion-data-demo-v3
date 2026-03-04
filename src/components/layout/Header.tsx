@@ -15,9 +15,11 @@ import {
   Menu,
   MenuItem,
   ListItemText,
+  ListItemIcon,
   Divider,
   Switch,
   Avatar,
+  ButtonBase,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import DashboardIcon from '@mui/icons-material/Dashboard'
@@ -25,8 +27,8 @@ import BugReportIcon from '@mui/icons-material/BugReport'
 import SettingsIcon from '@mui/icons-material/Settings'
 import CheckIcon from '@mui/icons-material/Check'
 import MenuIcon from '@mui/icons-material/Menu'
+import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../../context/AuthContext'
-import { LogoutButton } from '../auth/LogoutButton'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
 import type { User } from '../../types/auth.types'
 
@@ -56,8 +58,9 @@ export function Header({
   filterV2Hubs = false,
   onFilterV2HubsChange,
 }: HeaderProps) {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -81,34 +84,21 @@ export function Header({
 
   return (
     <AppBar position="static" elevation={2}>
-      <Container maxWidth="xl">
+      <Container maxWidth={false} disableGutters sx={{ px: 4 }}>
         <Toolbar disableGutters>
-          {onDrawerToggle && isAuthenticated && (
-            <IconButton
-              color="inherit"
-              aria-label="toggle navigation"
-              onClick={onDrawerToggle}
-              edge="start"
-              sx={{ mr: 1 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <Typography
-              variant="h6"
-              component={RouterLink}
-              to="/"
-              sx={{
-                textDecoration: 'none',
-                color: 'inherit',
-                fontWeight: 600,
-                mr: 4,
-              }}
-            >
-              Fusion Data Demo
-            </Typography>
-
+          {/* Left: hamburger + nav buttons */}
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            {onDrawerToggle && isAuthenticated && (
+              <IconButton
+                color="inherit"
+                aria-label="toggle navigation"
+                onClick={onDrawerToggle}
+                edge="start"
+                sx={{ mr: 1 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
             {isAuthenticated && (
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -117,7 +107,7 @@ export function Header({
                   to="/dashboard"
                   startIcon={<DashboardIcon />}
                 >
-                  Dashboard
+                  Home
                 </Button>
                 <Button
                   color="inherit"
@@ -131,22 +121,26 @@ export function Header({
             )}
           </Box>
 
+          {/* Center: title */}
+          <Typography
+            component={RouterLink}
+            to="/"
+            sx={{
+              textDecoration: 'none',
+              color: 'inherit',
+              fontWeight: 700,
+              fontSize: '1.375rem',
+              letterSpacing: '0.02em',
+              whiteSpace: 'nowrap',
+              lineHeight: 1,
+            }}
+          >
+            Fusion Data Demo
+          </Typography>
+
+          {/* Right: settings + user */}
           {isAuthenticated && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {user && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar
-                    src={user.picture}
-                    alt={user.name}
-                    sx={{ width: 28, height: 28, fontSize: '0.75rem' }}
-                  >
-                    {getInitials(user)}
-                  </Avatar>
-                  <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                    {user.name}
-                  </Typography>
-                </Box>
-              )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
               {showThemeSwitcher && (
                 <>
                   <IconButton
@@ -214,32 +208,57 @@ export function Header({
                       </Box>
                       <ListItemText primary="Low (Comfortable)" />
                     </MenuItem>
-
-                    <Divider sx={{ my: 1 }} />
-
-                    <MenuItem disabled>
-                      <ListItemText
-                        primary="Filters"
-                        primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }}
-                      />
-                    </MenuItem>
-                    <MenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onFilterV2HubsChange?.(!filterV2Hubs)
-                      }}
+                  </Menu>
+                </>
+              )}
+              {user && (
+                <>
+                  <ButtonBase
+                    onClick={(e) => setUserMenuAnchorEl(e.currentTarget)}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1, borderRadius: 1, px: 0.5, py: 0.25 }}
+                    aria-label="user menu"
+                  >
+                    <Avatar
+                      src={user.picture}
+                      alt={user.name}
+                      sx={{ width: 28, height: 28, fontSize: '0.75rem' }}
                     >
-                      <ListItemText primary="CE Hubs Only" />
-                      <Switch
-                        checked={filterV2Hubs}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => onFilterV2HubsChange?.(e.target.checked)}
-                      />
+                      {getInitials(user)}
+                    </Avatar>
+                    <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                      {user.name}
+                    </Typography>
+                  </ButtonBase>
+                  <Menu
+                    anchorEl={userMenuAnchorEl}
+                    open={Boolean(userMenuAnchorEl)}
+                    onClose={() => setUserMenuAnchorEl(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  >
+                    {onFilterV2HubsChange && (
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onFilterV2HubsChange(!filterV2Hubs)
+                        }}
+                      >
+                        <ListItemText primary="CE Hubs Only" />
+                        <Switch
+                          checked={filterV2Hubs}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => onFilterV2HubsChange(e.target.checked)}
+                        />
+                      </MenuItem>
+                    )}
+                    <Divider />
+                    <MenuItem onClick={() => { setUserMenuAnchorEl(null); logout() }}>
+                      <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                      <ListItemText primary="Logout" />
                     </MenuItem>
                   </Menu>
                 </>
               )}
-              <LogoutButton />
             </Box>
           )}
         </Toolbar>
