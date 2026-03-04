@@ -19,6 +19,8 @@ jobs:
         run: npm ci
       - name: Build project
         run: npm run build
+        env:
+          VITE_CLIENT_ID: ${{ secrets.VITE_CLIENT_ID }}
       - name: Configure git identity and credentials
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

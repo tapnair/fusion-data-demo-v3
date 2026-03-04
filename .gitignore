@@ -21,7 +21,7 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
-.env.production
+# .env.production is tracked — contains no secrets (CLIENT_ID comes from CI secret)
 
 # ========================
 # Logs
