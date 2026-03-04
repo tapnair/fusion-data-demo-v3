@@ -6,6 +6,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { AuthService } from '../services/auth/authService'
 import { TokenManager } from '../services/auth/tokenManager'
+import { fetchUserInfo } from '../services/auth/userInfoService'
 import { User } from '../types/auth.types'
 
 interface AuthContextType {
@@ -40,14 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for existing valid token on mount
   useEffect(() => {
-    const token = TokenManager.getToken()
-    if (token) {
-      setAccessToken(token)
-      setIsAuthenticated(true)
-      // TODO: Fetch user info from token or API
-      setUser({ id: 'user', name: 'Autodesk User' })
-    }
-    setLoading(false)
+    ;(async () => {
+      const token = TokenManager.getToken()
+      if (token) {
+        try {
+          const userInfo = await fetchUserInfo(token)
+          setAccessToken(token)
+          setIsAuthenticated(true)
+          setUser(userInfo)
+        } catch {
+          // Token is stale or missing required scopes — clear it so the
+          // user re-authenticates with the correct scopes on next login.
+          TokenManager.clearToken()
+          // Leave isAuthenticated: false — ProtectedRoute redirects to home.
+        }
+      }
+      setLoading(false)
+    })()
   }, [])
 
   /**
@@ -93,12 +103,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Handle successful authentication (called from callback page)
    */
-  const handleAuthSuccess = (token: string) => {
+  const handleAuthSuccess = async (token: string) => {
     setAccessToken(token)
     setIsAuthenticated(true)
-    // TODO: Fetch user info
-    setUser({ id: 'user', name: 'Autodesk User' })
     setError(null)
+    try {
+      const userInfo = await fetchUserInfo(token)
+      setUser(userInfo)
+    } catch {
+      setUser({ id: 'user', name: 'Autodesk User' })
+    }
   }
 
   // Export handleAuthSuccess for use in callback

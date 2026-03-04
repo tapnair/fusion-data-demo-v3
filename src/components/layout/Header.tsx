@@ -17,6 +17,7 @@ import {
   ListItemText,
   Divider,
   Switch,
+  Avatar,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import DashboardIcon from '@mui/icons-material/Dashboard'
@@ -27,6 +28,14 @@ import MenuIcon from '@mui/icons-material/Menu'
 import { useAuth } from '../../context/AuthContext'
 import { LogoutButton } from '../auth/LogoutButton'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
+import type { User } from '../../types/auth.types'
+
+function getInitials(user: User): string {
+  if (user.givenName && user.familyName) {
+    return `${user.givenName[0]}${user.familyName[0]}`.toUpperCase()
+  }
+  return user.name?.[0]?.toUpperCase() ?? '?'
+}
 
 interface HeaderProps {
   colorScheme?: WeaveColorScheme
@@ -47,7 +56,7 @@ export function Header({
   filterV2Hubs = false,
   onFilterV2HubsChange,
 }: HeaderProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -124,6 +133,20 @@ export function Header({
 
           {isAuthenticated && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {user && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Avatar
+                    src={user.picture}
+                    alt={user.name}
+                    sx={{ width: 28, height: 28, fontSize: '0.75rem' }}
+                  >
+                    {getInitials(user)}
+                  </Avatar>
+                  <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    {user.name}
+                  </Typography>
+                </Box>
+              )}
               {showThemeSwitcher && (
                 <>
                   <IconButton

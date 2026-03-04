@@ -16,9 +16,12 @@ export interface AuthConfig {
 }
 
 export interface User {
-  id?: string
-  name?: string
-  email?: string
+  id?: string           // sub
+  name?: string         // name
+  email?: string        // email
+  picture?: string      // picture (avatar URL)
+  givenName?: string    // given_name
+  familyName?: string   // family_name
 }
 
 export interface AuthState {
