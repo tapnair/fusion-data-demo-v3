@@ -7,17 +7,26 @@ import { useState, useMemo, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import { ApolloProvider } from '@apollo/client/react'
 import { createWeaveTheme } from './theme/createWeaveTheme'
 import type { WeaveColorScheme, WeaveDensity } from './theme/types'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { NavProvider } from './context/NavContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './components/layout/AppShell'
 import { DetailPanel } from './components/detail/DetailPanel'
+import { createApolloClient } from './apollo/client'
 import Home from './pages/Home'
 import Callback from './pages/Callback'
 import DebugPage from './pages/DebugPage'
 import './theme/fonts.css'
+
+/** Wraps children with ApolloProvider, creating the client from AuthContext. */
+function ApolloWrapper({ children }: { children: React.ReactNode }) {
+  const { getAccessToken } = useAuth()
+  const apolloClient = useMemo(() => createApolloClient(getAccessToken), [getAccessToken])
+  return <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+}
 
 // localStorage keys for theme persistence
 const THEME_STORAGE_KEY = 'weave-color-scheme'
@@ -55,6 +64,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
+          <ApolloWrapper>
           <Router>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -86,6 +96,7 @@ function App() {
               />
             </Routes>
           </Router>
+          </ApolloWrapper>
         </AuthProvider>
       </ThemeProvider>
     </StyledEngineProvider>

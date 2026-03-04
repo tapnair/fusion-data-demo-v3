@@ -1,41 +1,33 @@
 import { useCallback } from 'react'
-import { MfgDataModelClient } from '../services/api/mfgDataModelClient'
-import { useAuth } from '../context/AuthContext'
+import { useApolloClient } from '@apollo/client/react'
 import { useNavContext } from '../context/NavContext'
+import { GET_PROJECTS } from '../graphql/queries/projects'
+import { GET_FOLDERS_BY_PROJECT, GET_FOLDERS_BY_FOLDER } from '../graphql/queries/folders'
+import { GET_ITEMS_BY_PROJECT, GET_ITEMS_BY_FOLDER } from '../graphql/queries/items'
 import type { NavNode, NavNodeType } from '../types/nav.types'
 
 const sortByLabel = (a: NavNode, b: NavNode) =>
   a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
 
 export function useNavLoader() {
-  const { getAccessToken } = useAuth()
+  const client = useApolloClient()
   const {
     setNodeChildren,
     setNodeLoading,
-    setFolderPagination,
-    getFolderPagination,
-    replaceLoadMoreNode,
     nodeChildrenCache,
   } = useNavContext()
 
-  const createClient = useCallback(() => {
-    return new MfgDataModelClient({
-      graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT,
-      getAccessToken,
-    })
-  }, [getAccessToken])
-
   const loadChildren = useCallback(async (node: NavNode) => {
-    // Don't reload already-loaded nodes (except load-more)
     if (node.type !== 'load-more' && nodeChildrenCache.has(node.id)) return
 
     setNodeLoading(node.id, true)
     try {
-      const client = createClient()
-
       if (node.type === 'hub') {
-        const res = await client.getProjects(node.entityId)
-        const children: NavNode[] = (res.projects?.results ?? []).map(p => ({
+        const { data } = await client.query<any>({
+          query: GET_PROJECTS,
+          variables: { hubId: node.entityId },
+        })
+        const children: NavNode[] = (data?.projects?.results ?? []).map((p: any) => ({
           id: `project:${p.id}`,
           label: p.name ?? p.id,
           type: 'project' as NavNodeType,
@@ -47,11 +39,15 @@ export function useNavLoader() {
         setNodeChildren(node.id, children.sort(sortByLabel))
 
       } else if (node.type === 'project') {
-        // Fetch root folders AND first page of items in parallel — use allSettled so
-        // a failure in one doesn't prevent the other from showing
         const [foldersResult, itemsResult] = await Promise.allSettled([
-          client.getFoldersByProject(node.entityId),
-          client.getItemsByProject(node.entityId, { limit: 50 }),
+          client.query<any>({
+            query: GET_FOLDERS_BY_PROJECT,
+            variables: { projectId: node.entityId },
+          }),
+          client.query<any>({
+            query: GET_ITEMS_BY_PROJECT,
+            variables: { projectId: node.entityId, pagination: { limit: 50 } },
+          }),
         ])
 
         if (foldersResult.status === 'rejected') {
@@ -61,10 +57,10 @@ export function useNavLoader() {
           console.error('Failed to load items for project:', node.entityId, itemsResult.reason)
         }
 
-        const foldersRes = foldersResult.status === 'fulfilled' ? foldersResult.value : null
-        const itemsRes = itemsResult.status === 'fulfilled' ? itemsResult.value : null
+        const foldersData = foldersResult.status === 'fulfilled' ? foldersResult.value.data : null
+        const itemsData = itemsResult.status === 'fulfilled' ? itemsResult.value.data : null
 
-        const folders: NavNode[] = (foldersRes?.foldersByProject?.results ?? []).map(f => ({
+        const folders: NavNode[] = (foldersData?.foldersByProject?.results ?? []).map((f: any) => ({
           id: `folder:${f.id}`,
           label: f.name ?? f.id,
           type: 'folder' as NavNodeType,
@@ -75,7 +71,10 @@ export function useNavLoader() {
           isLoaded: false,
         }))
 
-        const items: NavNode[] = (itemsRes?.itemsByProject?.results ?? []).map(i => ({
+        const paginationCursor = itemsData?.itemsByProject?.pagination?.cursor ?? null
+        const hasMore = !!paginationCursor
+
+        const items: NavNode[] = (itemsData?.itemsByProject?.results ?? []).map((i: any) => ({
           id: `item:${i.id}`,
           label: i.name ?? i.id,
           type: 'item' as NavNodeType,
@@ -85,10 +84,6 @@ export function useNavLoader() {
           hasChildren: false,
           isLoaded: true,
         }))
-
-        const paginationCursor = itemsRes?.itemsByProject?.pagination?.cursor ?? null
-        const hasMore = !!paginationCursor
-        setFolderPagination(node.id, { nextCursor: paginationCursor, hasMore })
 
         const loadMoreNode: NavNode[] = hasMore ? [{
           id: `load-more:${node.id}`,
@@ -102,14 +97,18 @@ export function useNavLoader() {
           isLoaded: true,
         }] : []
 
-        // Always call setNodeChildren (even with empty array) so the placeholder is removed
         setNodeChildren(node.id, [...folders, ...items].sort(sortByLabel).concat(loadMoreNode))
 
       } else if (node.type === 'folder') {
-        // Fetch sub-folders and first page of items in parallel
         const [foldersResult, itemsResult] = await Promise.allSettled([
-          client.getFoldersByFolder(node.projectId!, node.entityId),
-          client.getItemsByFolder(node.hubId!, node.entityId, { limit: 50 }),
+          client.query<any>({
+            query: GET_FOLDERS_BY_FOLDER,
+            variables: { projectId: node.projectId!, folderId: node.entityId },
+          }),
+          client.query<any>({
+            query: GET_ITEMS_BY_FOLDER,
+            variables: { hubId: node.hubId!, folderId: node.entityId, pagination: { limit: 50 } },
+          }),
         ])
 
         if (foldersResult.status === 'rejected') {
@@ -119,10 +118,10 @@ export function useNavLoader() {
           console.error('Failed to load items for folder:', node.entityId, itemsResult.reason)
         }
 
-        const foldersRes = foldersResult.status === 'fulfilled' ? foldersResult.value : null
-        const itemsRes = itemsResult.status === 'fulfilled' ? itemsResult.value : null
+        const foldersData = foldersResult.status === 'fulfilled' ? foldersResult.value.data : null
+        const itemsData = itemsResult.status === 'fulfilled' ? itemsResult.value.data : null
 
-        const subFolders: NavNode[] = (foldersRes?.foldersByFolder?.results ?? []).map(f => ({
+        const subFolders: NavNode[] = (foldersData?.foldersByFolder?.results ?? []).map((f: any) => ({
           id: `folder:${f.id}`,
           label: f.name ?? f.id,
           type: 'folder' as NavNodeType,
@@ -134,7 +133,10 @@ export function useNavLoader() {
           isLoaded: false,
         }))
 
-        const items: NavNode[] = (itemsRes?.itemsByFolder?.results ?? []).map(i => ({
+        const paginationCursor = itemsData?.itemsByFolder?.pagination?.cursor ?? null
+        const hasMore = !!paginationCursor
+
+        const items: NavNode[] = (itemsData?.itemsByFolder?.results ?? []).map((i: any) => ({
           id: `item:${i.id}`,
           label: i.name ?? i.id,
           type: 'item' as NavNodeType,
@@ -145,10 +147,6 @@ export function useNavLoader() {
           hasChildren: false,
           isLoaded: true,
         }))
-
-        const paginationCursor = itemsRes?.itemsByFolder?.pagination?.cursor ?? null
-        const hasMore = !!paginationCursor
-        setFolderPagination(node.id, { nextCursor: paginationCursor, hasMore })
 
         const loadMoreNode: NavNode[] = hasMore ? [{
           id: `load-more:${node.id}`,
@@ -166,53 +164,148 @@ export function useNavLoader() {
         setNodeChildren(node.id, [...subFolders, ...items].sort(sortByLabel).concat(loadMoreNode))
 
       } else if (node.type === 'load-more') {
-        // Load next page of items — parent may be a project or folder
         const parentNodeId = node.parentNodeId!
-        const pagination = getFolderPagination(parentNodeId)
-        if (!pagination?.hasMore || !pagination.nextCursor) return
-
         const isProjectParent = parentNodeId.startsWith('project:')
-        let rawResults: any[]
-        let nextCursor: string | null
 
+        // Read the current cursor from the Apollo cache for this parent's query
+        let cursor: string | null = null
         if (isProjectParent) {
-          const res = await client.getItemsByProject(
-            node.entityId,
-            { limit: 50, cursor: pagination.nextCursor }
-          )
-          rawResults = res.itemsByProject?.results ?? []
-          nextCursor = res.itemsByProject?.pagination?.cursor ?? null
+          const cached = client.readQuery({
+            query: GET_ITEMS_BY_PROJECT,
+            variables: { projectId: node.entityId, pagination: { limit: 50 } },
+          }) as any
+          cursor = cached?.itemsByProject?.pagination?.cursor ?? null
         } else {
-          const res = await client.getItemsByFolder(
-            node.hubId!,
-            node.entityId,
-            { limit: 50, cursor: pagination.nextCursor }
-          )
-          rawResults = res.itemsByFolder?.results ?? []
-          nextCursor = res.itemsByFolder?.pagination?.cursor ?? null
+          const cached = client.readQuery({
+            query: GET_ITEMS_BY_FOLDER,
+            variables: { hubId: node.hubId!, folderId: node.entityId, pagination: { limit: 50 } },
+          }) as any
+          cursor = cached?.itemsByFolder?.pagination?.cursor ?? null
         }
 
-        const newItems: NavNode[] = rawResults.map(i => ({
-          id: `item:${i.id}`,
-          label: i.name ?? i.id,
-          type: 'item' as NavNodeType,
-          entityId: i.id,
-          hubId: node.hubId,
-          projectId: node.projectId,
-          parentFolderId: isProjectParent ? undefined : node.entityId,
-          hasChildren: false,
-          isLoaded: true,
-        }))
+        if (!cursor) return
 
-        const stillHasMore = !!nextCursor
-        replaceLoadMoreNode(parentNodeId, node.id, newItems.sort(sortByLabel), stillHasMore, nextCursor)
+        // Fetch next page — pagedField merge fn appends into cache automatically
+        if (isProjectParent) {
+          await client.query<any>({
+            query: GET_ITEMS_BY_PROJECT,
+            variables: { projectId: node.entityId, pagination: { cursor, limit: 50 } },
+            fetchPolicy: 'network-only',
+          })
+          // Read the now-merged full list from cache
+          const merged = client.readQuery({
+            query: GET_ITEMS_BY_PROJECT,
+            variables: { projectId: node.entityId, pagination: { limit: 50 } },
+          }) as any
+          const allResults = merged?.itemsByProject?.results ?? []
+          const nextCursor = merged?.itemsByProject?.pagination?.cursor ?? null
+          const stillHasMore = !!nextCursor
+
+          const newItems: NavNode[] = allResults.map((i: any) => ({
+            id: `item:${i.id}`,
+            label: i.name ?? i.id,
+            type: 'item' as NavNodeType,
+            entityId: i.id,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            hasChildren: false,
+            isLoaded: true,
+          }))
+
+          const loadMoreNode: NavNode[] = stillHasMore ? [{
+            id: `load-more:${parentNodeId}`,
+            label: 'Load more...',
+            type: 'load-more' as NavNodeType,
+            entityId: node.entityId,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            parentNodeId,
+            hasChildren: false,
+            isLoaded: true,
+          }] : []
+
+          // Re-read folders from cache to rebuild full children list
+          const cachedFolders = client.readQuery({
+            query: GET_FOLDERS_BY_PROJECT,
+            variables: { projectId: node.entityId },
+          }) as any
+          const folderNodes: NavNode[] = (cachedFolders?.foldersByProject?.results ?? []).map((f: any) => ({
+            id: `folder:${f.id}`,
+            label: f.name ?? f.id,
+            type: 'folder' as NavNodeType,
+            entityId: f.id,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            hasChildren: true,
+            isLoaded: false,
+          }))
+
+          setNodeChildren(parentNodeId, [...folderNodes, ...newItems].sort(sortByLabel).concat(loadMoreNode))
+
+        } else {
+          await client.query<any>({
+            query: GET_ITEMS_BY_FOLDER,
+            variables: { hubId: node.hubId!, folderId: node.entityId, pagination: { cursor, limit: 50 } },
+            fetchPolicy: 'network-only',
+          })
+          const merged = client.readQuery({
+            query: GET_ITEMS_BY_FOLDER,
+            variables: { hubId: node.hubId!, folderId: node.entityId, pagination: { limit: 50 } },
+          }) as any
+          const allResults = merged?.itemsByFolder?.results ?? []
+          const nextCursor = merged?.itemsByFolder?.pagination?.cursor ?? null
+          const stillHasMore = !!nextCursor
+
+          const newItems: NavNode[] = allResults.map((i: any) => ({
+            id: `item:${i.id}`,
+            label: i.name ?? i.id,
+            type: 'item' as NavNodeType,
+            entityId: i.id,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            parentFolderId: node.entityId,
+            hasChildren: false,
+            isLoaded: true,
+          }))
+
+          const loadMoreNode: NavNode[] = stillHasMore ? [{
+            id: `load-more:${parentNodeId}`,
+            label: 'Load more...',
+            type: 'load-more' as NavNodeType,
+            entityId: node.entityId,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            parentFolderId: node.entityId,
+            parentNodeId,
+            hasChildren: false,
+            isLoaded: true,
+          }] : []
+
+          const cachedFolders = client.readQuery({
+            query: GET_FOLDERS_BY_FOLDER,
+            variables: { projectId: node.projectId!, folderId: node.entityId },
+          }) as any
+          const folderNodes: NavNode[] = (cachedFolders?.foldersByFolder?.results ?? []).map((f: any) => ({
+            id: `folder:${f.id}`,
+            label: f.name ?? f.id,
+            type: 'folder' as NavNodeType,
+            entityId: f.id,
+            hubId: node.hubId,
+            projectId: node.projectId,
+            parentFolderId: node.entityId,
+            hasChildren: true,
+            isLoaded: false,
+          }))
+
+          setNodeChildren(parentNodeId, [...folderNodes, ...newItems].sort(sortByLabel).concat(loadMoreNode))
+        }
       }
     } catch (err) {
       console.error(`Failed to load children for node ${node.id}:`, err)
     } finally {
       setNodeLoading(node.id, false)
     }
-  }, [createClient, nodeChildrenCache, setNodeChildren, setNodeLoading, setFolderPagination, getFolderPagination, replaceLoadMoreNode])
+  }, [client, nodeChildrenCache, setNodeChildren, setNodeLoading])
 
   return { loadChildren }
 }

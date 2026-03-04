@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -13,8 +13,8 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
-import { MfgDataModelClient } from '../../services/api/mfgDataModelClient'
-import { useAuth } from '../../context/AuthContext'
+import { useLazyQuery } from '@apollo/client/react'
+import { GET_HUB_DETAIL } from '../../graphql/queries/hubs'
 import type { NavNode } from '../../types/nav.types'
 
 interface HubDetailProps {
@@ -37,27 +37,12 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function HubDetail({ node }: HubDetailProps) {
-  const { getAccessToken } = useAuth()
-  const [hub, setHub] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
   const [copied, setCopied] = useState(false)
+  const [fetchHub, { data, loading, error }] = useLazyQuery<any>(GET_HUB_DETAIL)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    const client = new MfgDataModelClient({
-      graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT,
-      getAccessToken,
-    })
-    client
-      .getHubDetail(node.entityId)
-      .then((res) => setHub(res.hub))
-      .catch((err) =>
-        setError(err instanceof Error ? err : new Error('Failed to load hub'))
-      )
-      .finally(() => setLoading(false))
-  }, [node.entityId, getAccessToken])
+    fetchHub({ variables: { hubId: node.entityId } })
+  }, [node.entityId, fetchHub])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -79,6 +64,8 @@ export function HubDetail({ node }: HubDetailProps) {
       </Alert>
     )
   }
+
+  const hub = data?.hub
   if (!hub) return null
 
   return (

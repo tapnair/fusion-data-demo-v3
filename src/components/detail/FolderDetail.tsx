@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -10,8 +10,8 @@ import {
 } from '@mui/material'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import FolderIcon from '@mui/icons-material/Folder'
-import { MfgDataModelClient } from '../../services/api/mfgDataModelClient'
-import { useAuth } from '../../context/AuthContext'
+import { useLazyQuery } from '@apollo/client/react'
+import { GET_FOLDER_DETAIL } from '../../graphql/queries/folders'
 import type { NavNode } from '../../types/nav.types'
 
 interface FolderDetailProps {
@@ -39,26 +39,11 @@ function formatDateTime(dateStr: string): string {
 }
 
 export function FolderDetail({ node }: FolderDetailProps) {
-  const { getAccessToken } = useAuth()
-  const [folder, setFolder] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [fetchFolder, { data, loading, error }] = useLazyQuery<any>(GET_FOLDER_DETAIL)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    const client = new MfgDataModelClient({
-      graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT,
-      getAccessToken,
-    })
-    client
-      .getFolderDetail(node.projectId!, node.entityId)
-      .then((res) => setFolder(res.folder))
-      .catch((err) =>
-        setError(err instanceof Error ? err : new Error('Failed to load folder'))
-      )
-      .finally(() => setLoading(false))
-  }, [node.entityId, node.projectId, getAccessToken])
+    fetchFolder({ variables: { projectId: node.projectId!, folderId: node.entityId } })
+  }, [node.entityId, node.projectId, fetchFolder])
 
   if (loading) {
     return (
@@ -74,6 +59,8 @@ export function FolderDetail({ node }: FolderDetailProps) {
       </Alert>
     )
   }
+
+  const folder = data?.folder
   if (!folder) return null
 
   return (
@@ -122,7 +109,7 @@ export function FolderDetail({ node }: FolderDetailProps) {
           value={
             <Typography variant="body2">
               {formatDateTime(folder.createdOn)}
-              {folder.createdBy?.name ? ` by ${folder.createdBy.name}` : ''}
+              {folder.createdBy?.userName ? ` by ${folder.createdBy.userName}` : ''}
             </Typography>
           }
         />
@@ -134,7 +121,7 @@ export function FolderDetail({ node }: FolderDetailProps) {
           value={
             <Typography variant="body2">
               {formatDateTime(folder.lastModifiedOn)}
-              {folder.lastModifiedBy?.name ? ` by ${folder.lastModifiedBy.name}` : ''}
+              {folder.lastModifiedBy?.userName ? ` by ${folder.lastModifiedBy.userName}` : ''}
             </Typography>
           }
         />

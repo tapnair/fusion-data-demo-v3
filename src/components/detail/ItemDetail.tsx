@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -10,8 +10,8 @@ import {
 } from '@mui/material'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import DesignServicesIcon from '@mui/icons-material/DesignServices'
-import { MfgDataModelClient } from '../../services/api/mfgDataModelClient'
-import { useAuth } from '../../context/AuthContext'
+import { useLazyQuery } from '@apollo/client/react'
+import { GET_ITEM_DETAIL } from '../../graphql/queries/items'
 import type { NavNode } from '../../types/nav.types'
 
 interface ItemDetailProps {
@@ -45,26 +45,11 @@ function formatFileSize(bytes: number): string {
 }
 
 export function ItemDetail({ node }: ItemDetailProps) {
-  const { getAccessToken } = useAuth()
-  const [item, setItem] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [fetchItem, { data, loading, error }] = useLazyQuery<any>(GET_ITEM_DETAIL)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    const client = new MfgDataModelClient({
-      graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT,
-      getAccessToken,
-    })
-    client
-      .getItemDetail(node.hubId!, node.entityId)
-      .then((res) => setItem(res.item))
-      .catch((err) =>
-        setError(err instanceof Error ? err : new Error('Failed to load item'))
-      )
-      .finally(() => setLoading(false))
-  }, [node.entityId, node.hubId, getAccessToken])
+    fetchItem({ variables: { hubId: node.hubId!, itemId: node.entityId } })
+  }, [node.entityId, node.hubId, fetchItem])
 
   if (loading) {
     return (
@@ -80,6 +65,8 @@ export function ItemDetail({ node }: ItemDetailProps) {
       </Alert>
     )
   }
+
+  const item = data?.item
   if (!item) return null
 
   const isDesignItem = item.__typename === 'DesignItem'
@@ -139,7 +126,7 @@ export function ItemDetail({ node }: ItemDetailProps) {
           value={
             <Typography variant="body2">
               {formatDateTime(item.createdOn)}
-              {item.createdBy?.userName ? ` by ${item.createdBy.name}` : ''}
+              {item.createdBy?.userName ? ` by ${item.createdBy.userName}` : ''}
             </Typography>
           }
         />
@@ -151,7 +138,7 @@ export function ItemDetail({ node }: ItemDetailProps) {
           value={
             <Typography variant="body2">
               {formatDateTime(item.lastModifiedOn)}
-              {item.lastModifiedBy?.userName ? ` by ${item.lastModifiedBy.name}` : ''}
+              {item.lastModifiedBy?.userName ? ` by ${item.lastModifiedBy.userName}` : ''}
             </Typography>
           }
         />

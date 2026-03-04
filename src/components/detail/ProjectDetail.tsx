@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -13,8 +13,8 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial'
-import { MfgDataModelClient } from '../../services/api/mfgDataModelClient'
-import { useAuth } from '../../context/AuthContext'
+import { useLazyQuery } from '@apollo/client/react'
+import { GET_PROJECT_DETAIL } from '../../graphql/queries/projects'
 import type { NavNode } from '../../types/nav.types'
 
 interface ProjectDetailProps {
@@ -37,27 +37,12 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function ProjectDetail({ node }: ProjectDetailProps) {
-  const { getAccessToken } = useAuth()
-  const [project, setProject] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
   const [copied, setCopied] = useState(false)
+  const [fetchProject, { data, loading, error }] = useLazyQuery<any>(GET_PROJECT_DETAIL)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    const client = new MfgDataModelClient({
-      graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT,
-      getAccessToken,
-    })
-    client
-      .getProjectDetail(node.entityId)
-      .then((res) => setProject(res.project))
-      .catch((err) =>
-        setError(err instanceof Error ? err : new Error('Failed to load project'))
-      )
-      .finally(() => setLoading(false))
-  }, [node.entityId, getAccessToken])
+    fetchProject({ variables: { projectId: node.entityId } })
+  }, [node.entityId, fetchProject])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -79,6 +64,8 @@ export function ProjectDetail({ node }: ProjectDetailProps) {
       </Alert>
     )
   }
+
+  const project = data?.project
   if (!project) return null
 
   return (
