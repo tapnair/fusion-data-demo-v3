@@ -737,4 +737,92 @@ Updated this file (`prompt_history.md`) with all prompts from this session.
 
 ---
 
+```
+Create the file: .github/workflows/deploy.yml
+```
+Created `.github/workflows/deploy.yml` with a GitHub Actions workflow that triggers on push to `main`, runs `npm ci`, `npm run build`, and `npm run deploy` (gh-pages), with `GITHUB_TOKEN` provided for push access to the `gh-pages` branch.
+
+---
+
+```
+the contents of that file should be:
+name: Deploy Vite + React app to GitHub Pages
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci
+      - name: Build project
+        run: npm run build
+      - name: Deploy to GitHub Pages
+        run: npm run deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+Replaced the file contents with the exact YAML provided by the user.
+
+---
+
+```
+run this: git add .github/workflows/deploy.yml
+git commit -m "Add GitHub Pages deploy workflow"
+git push origin main
+```
+Staged, committed, and pushed the workflow file to `main`. GitHub Actions will now auto-deploy on every push to `main`.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. FOllow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
+```
+when displaying the units create a little replacement map so you actually show an abbreviation
+of the units. Kilograms = kg, Cubic Centimeters = cm^3, Square Centimeters = cm^2,
+Centimeters = cm, etc.
+```
+Added `UNIT_ABBREVIATIONS` map (lowercase keys) to `bomColumns.ts` covering mass, length, volume, area, and density units. Updated `formatDisplayValue` to look up abbreviations via `unitName.toLowerCase()`, falling back to the raw unit name if not found.
+
+---
+
+```
+volume column is still showing: "Cubic centimeters" as the unit
+```
+Fixed case mismatch — map keys were title-cased but API returns lowercase 'c' in "centimeters". Converted all map keys to lowercase and changed the lookup to `UNIT_ABBREVIATIONS[unitName.toLowerCase()]`.
+
+---
+
+```
+all physical property column cells should be aligned in the middle of the cell, currently
+they are aligned to the top of the cell
+```
+Wrapped the inner component in `BomPhysicalPropertiesCell` and `BomBoundingBoxCell` with a `Box` using `sx={{ display: 'flex', alignItems: 'center', height: '100%' }}`, matching the same centering pattern already used by `BomNameCell`.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current session.
+FOllow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
 *Generated: 2026-03-03*
