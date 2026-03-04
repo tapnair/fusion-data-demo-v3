@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      // SPA routing on GitHub Pages — restores path forwarded by 404.html
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&')
+          }).join('?')
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          )
+        }
+      }(window.location))
+    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fusion Data Demo - Autodesk APS</title>
+    <script type="module" crossorigin src="/fusion-data-demo-v3/assets/index-qoZzi4XE.js"></script>
+    <link rel="stylesheet" crossorigin href="/fusion-data-demo-v3/assets/index-CL8wFWWR.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

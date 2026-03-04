@@ -1,0 +1,992 @@
+[
+  {
+    "name": "add-folder",
+    "file": "add-folder.svg",
+    "component": "AddFolderIcon"
+  },
+  {
+    "name": "add-member",
+    "file": "add-member.svg",
+    "component": "AddMemberIcon"
+  },
+  {
+    "name": "add-page",
+    "file": "add-page.svg",
+    "component": "AddPageIcon"
+  },
+  {
+    "name": "add",
+    "file": "add.svg",
+    "component": "AddIcon"
+  },
+  {
+    "name": "ai-assistant",
+    "file": "ai-assistant.svg",
+    "component": "AiAssistantIcon"
+  },
+  {
+    "name": "ai-sparkle",
+    "file": "ai-sparkle.svg",
+    "component": "AiSparkleIcon"
+  },
+  {
+    "name": "alert",
+    "file": "alert.svg",
+    "component": "AlertIcon"
+  },
+  {
+    "name": "archive",
+    "file": "archive.svg",
+    "component": "ArchiveIcon"
+  },
+  {
+    "name": "area-post",
+    "file": "area-post.svg",
+    "component": "AreaPostIcon"
+  },
+  {
+    "name": "assets",
+    "file": "assets.svg",
+    "component": "AssetsIcon"
+  },
+  {
+    "name": "attach",
+    "file": "attach.svg",
+    "component": "AttachIcon"
+  },
+  {
+    "name": "attachment",
+    "file": "attachment.svg",
+    "component": "AttachmentIcon"
+  },
+  {
+    "name": "back",
+    "file": "back.svg",
+    "component": "BackIcon"
+  },
+  {
+    "name": "bill-stack",
+    "file": "bill-stack.svg",
+    "component": "BillStackIcon"
+  },
+  {
+    "name": "billing",
+    "file": "billing.svg",
+    "component": "BillingIcon"
+  },
+  {
+    "name": "bookmark",
+    "file": "bookmark.svg",
+    "component": "BookmarkIcon"
+  },
+  {
+    "name": "building",
+    "file": "building.svg",
+    "component": "BuildingIcon"
+  },
+  {
+    "name": "calendar",
+    "file": "calendar.svg",
+    "component": "CalendarIcon"
+  },
+  {
+    "name": "caret-down",
+    "file": "caret-down.svg",
+    "component": "CaretDownIcon"
+  },
+  {
+    "name": "caret-left",
+    "file": "caret-left.svg",
+    "component": "CaretLeftIcon"
+  },
+  {
+    "name": "caret-right",
+    "file": "caret-right.svg",
+    "component": "CaretRightIcon"
+  },
+  {
+    "name": "caret-up",
+    "file": "caret-up.svg",
+    "component": "CaretUpIcon"
+  },
+  {
+    "name": "cart",
+    "file": "cart.svg",
+    "component": "CartIcon"
+  },
+  {
+    "name": "chat",
+    "file": "chat.svg",
+    "component": "ChatIcon"
+  },
+  {
+    "name": "checklist",
+    "file": "checklist.svg",
+    "component": "ChecklistIcon"
+  },
+  {
+    "name": "checkmark",
+    "file": "checkmark.svg",
+    "component": "CheckmarkIcon"
+  },
+  {
+    "name": "clock",
+    "file": "clock.svg",
+    "component": "ClockIcon"
+  },
+  {
+    "name": "closed-captioning",
+    "file": "closed-captioning.svg",
+    "component": "ClosedCaptioningIcon"
+  },
+  {
+    "name": "cloud",
+    "file": "cloud.svg",
+    "component": "CloudIcon"
+  },
+  {
+    "name": "collaboration",
+    "file": "collaboration.svg",
+    "component": "CollaborationIcon"
+  },
+  {
+    "name": "collapse-panel-left",
+    "file": "collapse-panel-left.svg",
+    "component": "CollapsePanelLeftIcon"
+  },
+  {
+    "name": "collapse-panel-right",
+    "file": "collapse-panel-right.svg",
+    "component": "CollapsePanelRightIcon"
+  },
+  {
+    "name": "comment",
+    "file": "comment.svg",
+    "component": "CommentIcon"
+  },
+  {
+    "name": "compare",
+    "file": "compare.svg",
+    "component": "CompareIcon"
+  },
+  {
+    "name": "complete",
+    "file": "complete.svg",
+    "component": "CompleteIcon"
+  },
+  {
+    "name": "control-caret-down",
+    "file": "control-caret-down.svg",
+    "component": "ControlCaretDownIcon"
+  },
+  {
+    "name": "control-caret-left",
+    "file": "control-caret-left.svg",
+    "component": "ControlCaretLeftIcon"
+  },
+  {
+    "name": "control-caret-right",
+    "file": "control-caret-right.svg",
+    "component": "ControlCaretRightIcon"
+  },
+  {
+    "name": "control-caret-up",
+    "file": "control-caret-up.svg",
+    "component": "ControlCaretUpIcon"
+  },
+  {
+    "name": "control-close",
+    "file": "control-close.svg",
+    "component": "ControlCloseIcon"
+  },
+  {
+    "name": "control-ellipsis",
+    "file": "control-ellipsis.svg",
+    "component": "ControlEllipsisIcon"
+  },
+  {
+    "name": "control-gripper",
+    "file": "control-gripper.svg",
+    "component": "ControlGripperIcon"
+  },
+  {
+    "name": "control-hamburger-close",
+    "file": "control-hamburger-close.svg",
+    "component": "ControlHamburgerCloseIcon"
+  },
+  {
+    "name": "control-hamburger",
+    "file": "control-hamburger.svg",
+    "component": "ControlHamburgerIcon"
+  },
+  {
+    "name": "control-hold",
+    "file": "control-hold.svg",
+    "component": "ControlHoldIcon"
+  },
+  {
+    "name": "control-operator-checkmark",
+    "file": "control-operator-checkmark.svg",
+    "component": "ControlOperatorCheckmarkIcon"
+  },
+  {
+    "name": "control-operator-minus",
+    "file": "control-operator-minus.svg",
+    "component": "ControlOperatorMinusIcon"
+  },
+  {
+    "name": "control-operator-plus",
+    "file": "control-operator-plus.svg",
+    "component": "ControlOperatorPlusIcon"
+  },
+  {
+    "name": "copy",
+    "file": "copy.svg",
+    "component": "CopyIcon"
+  },
+  {
+    "name": "cta-arrow-right",
+    "file": "cta-arrow-right.svg",
+    "component": "CtaArrowRightIcon"
+  },
+  {
+    "name": "dashboard",
+    "file": "dashboard.svg",
+    "component": "DashboardIcon"
+  },
+  {
+    "name": "data-refresh",
+    "file": "data-refresh.svg",
+    "component": "DataRefreshIcon"
+  },
+  {
+    "name": "device-desktop",
+    "file": "device-desktop.svg",
+    "component": "DeviceDesktopIcon"
+  },
+  {
+    "name": "device-mobile",
+    "file": "device-mobile.svg",
+    "component": "DeviceMobileIcon"
+  },
+  {
+    "name": "device-tablet",
+    "file": "device-tablet.svg",
+    "component": "DeviceTabletIcon"
+  },
+  {
+    "name": "devices",
+    "file": "devices.svg",
+    "component": "DevicesIcon"
+  },
+  {
+    "name": "document-management",
+    "file": "document-management.svg",
+    "component": "DocumentManagementIcon"
+  },
+  {
+    "name": "down",
+    "file": "down.svg",
+    "component": "DownIcon"
+  },
+  {
+    "name": "download",
+    "file": "download.svg",
+    "component": "DownloadIcon"
+  },
+  {
+    "name": "drag-indicator",
+    "file": "drag-indicator.svg",
+    "component": "DragIndicatorIcon"
+  },
+  {
+    "name": "edit-profile",
+    "file": "edit-profile.svg",
+    "component": "EditProfileIcon"
+  },
+  {
+    "name": "edit",
+    "file": "edit.svg",
+    "component": "EditIcon"
+  },
+  {
+    "name": "education",
+    "file": "education.svg",
+    "component": "EducationIcon"
+  },
+  {
+    "name": "error",
+    "file": "error.svg",
+    "component": "ErrorIcon"
+  },
+  {
+    "name": "expand-panel-left",
+    "file": "expand-panel-left.svg",
+    "component": "ExpandPanelLeftIcon"
+  },
+  {
+    "name": "expand-panel-right",
+    "file": "expand-panel-right.svg",
+    "component": "ExpandPanelRightIcon"
+  },
+  {
+    "name": "export-move",
+    "file": "export-move.svg",
+    "component": "ExportMoveIcon"
+  },
+  {
+    "name": "external-link",
+    "file": "external-link.svg",
+    "component": "ExternalLinkIcon"
+  },
+  {
+    "name": "external",
+    "file": "external.svg",
+    "component": "ExternalIcon"
+  },
+  {
+    "name": "factory",
+    "file": "factory.svg",
+    "component": "FactoryIcon"
+  },
+  {
+    "name": "featured",
+    "file": "featured.svg",
+    "component": "FeaturedIcon"
+  },
+  {
+    "name": "feedback",
+    "file": "feedback.svg",
+    "component": "FeedbackIcon"
+  },
+  {
+    "name": "field",
+    "file": "field.svg",
+    "component": "FieldIcon"
+  },
+  {
+    "name": "file-assembly",
+    "file": "file-assembly.svg",
+    "component": "FileAssemblyIcon"
+  },
+  {
+    "name": "file-audio",
+    "file": "file-audio.svg",
+    "component": "FileAudioIcon"
+  },
+  {
+    "name": "file-document",
+    "file": "file-document.svg",
+    "component": "FileDocumentIcon"
+  },
+  {
+    "name": "file-generic",
+    "file": "file-generic.svg",
+    "component": "FileGenericIcon"
+  },
+  {
+    "name": "file-image",
+    "file": "file-image.svg",
+    "component": "FileImageIcon"
+  },
+  {
+    "name": "file-part",
+    "file": "file-part.svg",
+    "component": "FilePartIcon"
+  },
+  {
+    "name": "file-pdf",
+    "file": "file-pdf.svg",
+    "component": "FilePdfIcon"
+  },
+  {
+    "name": "file-presentation",
+    "file": "file-presentation.svg",
+    "component": "FilePresentationIcon"
+  },
+  {
+    "name": "file-spreadsheet",
+    "file": "file-spreadsheet.svg",
+    "component": "FileSpreadsheetIcon"
+  },
+  {
+    "name": "file-video",
+    "file": "file-video.svg",
+    "component": "FileVideoIcon"
+  },
+  {
+    "name": "file-zip",
+    "file": "file-zip.svg",
+    "component": "FileZipIcon"
+  },
+  {
+    "name": "filter-tokens",
+    "file": "filter-tokens.svg",
+    "component": "FilterTokensIcon"
+  },
+  {
+    "name": "filter",
+    "file": "filter.svg",
+    "component": "FilterIcon"
+  },
+  {
+    "name": "flag",
+    "file": "flag.svg",
+    "component": "FlagIcon"
+  },
+  {
+    "name": "folder-open",
+    "file": "folder-open.svg",
+    "component": "FolderOpenIcon"
+  },
+  {
+    "name": "folder",
+    "file": "folder.svg",
+    "component": "FolderIcon"
+  },
+  {
+    "name": "forums",
+    "file": "forums.svg",
+    "component": "ForumsIcon"
+  },
+  {
+    "name": "forward",
+    "file": "forward.svg",
+    "component": "ForwardIcon"
+  },
+  {
+    "name": "globe",
+    "file": "globe.svg",
+    "component": "GlobeIcon"
+  },
+  {
+    "name": "graph",
+    "file": "graph.svg",
+    "component": "GraphIcon"
+  },
+  {
+    "name": "grid",
+    "file": "grid.svg",
+    "component": "GridIcon"
+  },
+  {
+    "name": "heart",
+    "file": "heart.svg",
+    "component": "HeartIcon"
+  },
+  {
+    "name": "help",
+    "file": "help.svg",
+    "component": "HelpIcon"
+  },
+  {
+    "name": "hidden",
+    "file": "hidden.svg",
+    "component": "HiddenIcon"
+  },
+  {
+    "name": "hierarchy",
+    "file": "hierarchy.svg",
+    "component": "HierarchyIcon"
+  },
+  {
+    "name": "home",
+    "file": "home.svg",
+    "component": "HomeIcon"
+  },
+  {
+    "name": "hub",
+    "file": "hub.svg",
+    "component": "HubIcon"
+  },
+  {
+    "name": "icon-placeholder",
+    "file": "icon-placeholder.svg",
+    "component": "IconPlaceholderIcon"
+  },
+  {
+    "name": "import",
+    "file": "import.svg",
+    "component": "ImportIcon"
+  },
+  {
+    "name": "inbox",
+    "file": "inbox.svg",
+    "component": "InboxIcon"
+  },
+  {
+    "name": "info",
+    "file": "info.svg",
+    "component": "InfoIcon"
+  },
+  {
+    "name": "insights",
+    "file": "insights.svg",
+    "component": "InsightsIcon"
+  },
+  {
+    "name": "item",
+    "file": "item.svg",
+    "component": "ItemIcon"
+  },
+  {
+    "name": "library",
+    "file": "library.svg",
+    "component": "LibraryIcon"
+  },
+  {
+    "name": "link",
+    "file": "link.svg",
+    "component": "LinkIcon"
+  },
+  {
+    "name": "list",
+    "file": "list.svg",
+    "component": "ListIcon"
+  },
+  {
+    "name": "location",
+    "file": "location.svg",
+    "component": "LocationIcon"
+  },
+  {
+    "name": "lock",
+    "file": "lock.svg",
+    "component": "LockIcon"
+  },
+  {
+    "name": "mail",
+    "file": "mail.svg",
+    "component": "MailIcon"
+  },
+  {
+    "name": "manage-access",
+    "file": "manage-access.svg",
+    "component": "ManageAccessIcon"
+  },
+  {
+    "name": "maximize",
+    "file": "maximize.svg",
+    "component": "MaximizeIcon"
+  },
+  {
+    "name": "microphone",
+    "file": "microphone.svg",
+    "component": "MicrophoneIcon"
+  },
+  {
+    "name": "minimize",
+    "file": "minimize.svg",
+    "component": "MinimizeIcon"
+  },
+  {
+    "name": "moon",
+    "file": "moon.svg",
+    "component": "MoonIcon"
+  },
+  {
+    "name": "more-vertical",
+    "file": "more-vertical.svg",
+    "component": "MoreVerticalIcon"
+  },
+  {
+    "name": "more",
+    "file": "more.svg",
+    "component": "MoreIcon"
+  },
+  {
+    "name": "mute",
+    "file": "mute.svg",
+    "component": "MuteIcon"
+  },
+  {
+    "name": "not-editable",
+    "file": "not-editable.svg",
+    "component": "NotEditableIcon"
+  },
+  {
+    "name": "notebook-stack",
+    "file": "notebook-stack.svg",
+    "component": "NotebookStackIcon"
+  },
+  {
+    "name": "notebook",
+    "file": "notebook.svg",
+    "component": "NotebookIcon"
+  },
+  {
+    "name": "notification-off",
+    "file": "notification-off.svg",
+    "component": "NotificationOffIcon"
+  },
+  {
+    "name": "notification",
+    "file": "notification.svg",
+    "component": "NotificationIcon"
+  },
+  {
+    "name": "offline",
+    "file": "offline.svg",
+    "component": "OfflineIcon"
+  },
+  {
+    "name": "online-viewers",
+    "file": "online-viewers.svg",
+    "component": "OnlineViewersIcon"
+  },
+  {
+    "name": "os-control-mac-finder",
+    "file": "os-control-mac-finder.svg",
+    "component": "OsControlMacFinderIcon"
+  },
+  {
+    "name": "os-control-window-explorer",
+    "file": "os-control-window-explorer.svg",
+    "component": "OsControlWindowExplorerIcon"
+  },
+  {
+    "name": "paste",
+    "file": "paste.svg",
+    "component": "PasteIcon"
+  },
+  {
+    "name": "permission-group",
+    "file": "permission-group.svg",
+    "component": "PermissionGroupIcon"
+  },
+  {
+    "name": "permission-individual",
+    "file": "permission-individual.svg",
+    "component": "PermissionIndividualIcon"
+  },
+  {
+    "name": "photos",
+    "file": "photos.svg",
+    "component": "PhotosIcon"
+  },
+  {
+    "name": "pin-right",
+    "file": "pin-right.svg",
+    "component": "PinRightIcon"
+  },
+  {
+    "name": "pin-row-bottom",
+    "file": "pin-row-bottom.svg",
+    "component": "PinRowBottomIcon"
+  },
+  {
+    "name": "pin-row-top",
+    "file": "pin-row-top.svg",
+    "component": "PinRowTopIcon"
+  },
+  {
+    "name": "pin",
+    "file": "pin.svg",
+    "component": "PinIcon"
+  },
+  {
+    "name": "playback-fast-forward",
+    "file": "playback-fast-forward.svg",
+    "component": "PlaybackFastForwardIcon"
+  },
+  {
+    "name": "playback-go-to-end",
+    "file": "playback-go-to-end.svg",
+    "component": "PlaybackGoToEndIcon"
+  },
+  {
+    "name": "playback-go-to-start",
+    "file": "playback-go-to-start.svg",
+    "component": "PlaybackGoToStartIcon"
+  },
+  {
+    "name": "playback-loop",
+    "file": "playback-loop.svg",
+    "component": "PlaybackLoopIcon"
+  },
+  {
+    "name": "playback-next",
+    "file": "playback-next.svg",
+    "component": "PlaybackNextIcon"
+  },
+  {
+    "name": "playback-play",
+    "file": "playback-play.svg",
+    "component": "PlaybackPlayIcon"
+  },
+  {
+    "name": "playback-previous",
+    "file": "playback-previous.svg",
+    "component": "PlaybackPreviousIcon"
+  },
+  {
+    "name": "playback-record",
+    "file": "playback-record.svg",
+    "component": "PlaybackRecordIcon"
+  },
+  {
+    "name": "playback-rewind",
+    "file": "playback-rewind.svg",
+    "component": "PlaybackRewindIcon"
+  },
+  {
+    "name": "playback-shuffle",
+    "file": "playback-shuffle.svg",
+    "component": "PlaybackShuffleIcon"
+  },
+  {
+    "name": "print",
+    "file": "print.svg",
+    "component": "PrintIcon"
+  },
+  {
+    "name": "products-and-services",
+    "file": "products-and-services.svg",
+    "component": "ProductsAndServicesIcon"
+  },
+  {
+    "name": "profile",
+    "file": "profile.svg",
+    "component": "ProfileIcon"
+  },
+  {
+    "name": "project-default",
+    "file": "project-default.svg",
+    "component": "ProjectDefaultIcon"
+  },
+  {
+    "name": "project-management",
+    "file": "project-management.svg",
+    "component": "ProjectManagementIcon"
+  },
+  {
+    "name": "properties",
+    "file": "properties.svg",
+    "component": "PropertiesIcon"
+  },
+  {
+    "name": "publish",
+    "file": "publish.svg",
+    "component": "PublishIcon"
+  },
+  {
+    "name": "quantities",
+    "file": "quantities.svg",
+    "component": "QuantitiesIcon"
+  },
+  {
+    "name": "recommend",
+    "file": "recommend.svg",
+    "component": "RecommendIcon"
+  },
+  {
+    "name": "redo",
+    "file": "redo.svg",
+    "component": "RedoIcon"
+  },
+  {
+    "name": "remove",
+    "file": "remove.svg",
+    "component": "RemoveIcon"
+  },
+  {
+    "name": "rename",
+    "file": "rename.svg",
+    "component": "RenameIcon"
+  },
+  {
+    "name": "report",
+    "file": "report.svg",
+    "component": "ReportIcon"
+  },
+  {
+    "name": "save",
+    "file": "save.svg",
+    "component": "SaveIcon"
+  },
+  {
+    "name": "search",
+    "file": "search.svg",
+    "component": "SearchIcon"
+  },
+  {
+    "name": "security",
+    "file": "security.svg",
+    "component": "SecurityIcon"
+  },
+  {
+    "name": "select-all",
+    "file": "select-all.svg",
+    "component": "SelectAllIcon"
+  },
+  {
+    "name": "select-none",
+    "file": "select-none.svg",
+    "component": "SelectNoneIcon"
+  },
+  {
+    "name": "send",
+    "file": "send.svg",
+    "component": "SendIcon"
+  },
+  {
+    "name": "service",
+    "file": "service.svg",
+    "component": "ServiceIcon"
+  },
+  {
+    "name": "settings",
+    "file": "settings.svg",
+    "component": "SettingsIcon"
+  },
+  {
+    "name": "share",
+    "file": "share.svg",
+    "component": "ShareIcon"
+  },
+  {
+    "name": "shopfloor",
+    "file": "shopfloor.svg",
+    "component": "ShopfloorIcon"
+  },
+  {
+    "name": "side-nav",
+    "file": "side-nav.svg",
+    "component": "SideNavIcon"
+  },
+  {
+    "name": "sign-out",
+    "file": "sign-out.svg",
+    "component": "SignOutIcon"
+  },
+  {
+    "name": "sort",
+    "file": "sort.svg",
+    "component": "SortIcon"
+  },
+  {
+    "name": "sparkle-badge",
+    "file": "sparkle-badge.svg",
+    "component": "SparkleBadgeIcon"
+  },
+  {
+    "name": "star",
+    "file": "star.svg",
+    "component": "StarIcon"
+  },
+  {
+    "name": "subscription",
+    "file": "subscription.svg",
+    "component": "SubscriptionIcon"
+  },
+  {
+    "name": "sun",
+    "file": "sun.svg",
+    "component": "SunIcon"
+  },
+  {
+    "name": "support",
+    "file": "support.svg",
+    "component": "SupportIcon"
+  },
+  {
+    "name": "survey-equipment",
+    "file": "survey-equipment.svg",
+    "component": "SurveyEquipmentIcon"
+  },
+  {
+    "name": "sync",
+    "file": "sync.svg",
+    "component": "SyncIcon"
+  },
+  {
+    "name": "tag",
+    "file": "tag.svg",
+    "component": "TagIcon"
+  },
+  {
+    "name": "today",
+    "file": "today.svg",
+    "component": "TodayIcon"
+  },
+  {
+    "name": "trash",
+    "file": "trash.svg",
+    "component": "TrashIcon"
+  },
+  {
+    "name": "tree-view",
+    "file": "tree-view.svg",
+    "component": "TreeViewIcon"
+  },
+  {
+    "name": "unavailable",
+    "file": "unavailable.svg",
+    "component": "UnavailableIcon"
+  },
+  {
+    "name": "undo",
+    "file": "undo.svg",
+    "component": "UndoIcon"
+  },
+  {
+    "name": "unlink",
+    "file": "unlink.svg",
+    "component": "UnlinkIcon"
+  },
+  {
+    "name": "unlock",
+    "file": "unlock.svg",
+    "component": "UnlockIcon"
+  },
+  {
+    "name": "unpin-row-bottom",
+    "file": "unpin-row-bottom.svg",
+    "component": "UnpinRowBottomIcon"
+  },
+  {
+    "name": "unpin-row-top",
+    "file": "unpin-row-top.svg",
+    "component": "UnpinRowTopIcon"
+  },
+  {
+    "name": "unpin",
+    "file": "unpin.svg",
+    "component": "UnpinIcon"
+  },
+  {
+    "name": "up",
+    "file": "up.svg",
+    "component": "UpIcon"
+  },
+  {
+    "name": "upload",
+    "file": "upload.svg",
+    "component": "UploadIcon"
+  },
+  {
+    "name": "user-inactive",
+    "file": "user-inactive.svg",
+    "component": "UserInactiveIcon"
+  },
+  {
+    "name": "visible",
+    "file": "visible.svg",
+    "component": "VisibleIcon"
+  },
+  {
+    "name": "volume",
+    "file": "volume.svg",
+    "component": "VolumeIcon"
+  },
+  {
+    "name": "zoom-in",
+    "file": "zoom-in.svg",
+    "component": "ZoomInIcon"
+  },
+  {
+    "name": "zoom-out",
+    "file": "zoom-out.svg",
+    "component": "ZoomOutIcon"
+  }
+]
