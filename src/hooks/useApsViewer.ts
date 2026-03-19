@@ -6,7 +6,7 @@ export function useApsViewer(
   encodedUrn: string | null,
   isReady: boolean,
   getAccessToken: () => Promise<string>
-): { viewerLoaded: boolean; viewerError: string | null } {
+): { viewerLoaded: boolean; viewerError: string | null; viewerRef: React.RefObject<Autodesk.Viewing.GuiViewer3D | null>; viewerInitialized: boolean } {
   // Keep viewer in a ref for imperative access, but mirror initialization
   // into state so Effect 3 re-fires when the viewer becomes available.
   const viewerRef = useRef<Autodesk.Viewing.GuiViewer3D | null>(null)
@@ -104,5 +104,5 @@ export function useApsViewer(
     )
   }, [viewerInitialized, encodedUrn, isReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { viewerLoaded, viewerError }
+  return { viewerLoaded, viewerError, viewerRef, viewerInitialized }
 }

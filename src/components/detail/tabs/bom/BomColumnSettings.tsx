@@ -7,9 +7,13 @@ import {
   Button,
   Menu,
   MenuItem,
+  Divider,
+  CircularProgress,
+  Typography,
 } from '@mui/material'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
 import { BOM_COLUMNS } from './bomColumns'
+import type { PropertyDefinition } from '../../../../hooks/useHubBasePropertyDefinitions'
 
 const PRECISION_OPTIONS = [
   { value: 0, label: '0' },
@@ -26,6 +30,8 @@ interface BomColumnSettingsProps {
   onChange: (ids: string[]) => void
   sigFigs: number
   onSigFigsChange: (n: number) => void
+  basePropertyDefs?: PropertyDefinition[]
+  basePropsLoading?: boolean
 }
 
 export function BomColumnSettings({
@@ -33,6 +39,8 @@ export function BomColumnSettings({
   onChange,
   sigFigs,
   onSigFigsChange,
+  basePropertyDefs,
+  basePropsLoading,
 }: BomColumnSettingsProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
   const [precisionAnchorEl, setPrecisionAnchorEl] = useState<HTMLElement | null>(null)
@@ -123,6 +131,31 @@ export function BomColumnSettings({
               }
             />
           ))}
+          {(basePropsLoading || (basePropertyDefs && basePropertyDefs.length > 0)) && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="caption" color="text.secondary" sx={{ pb: 0.5, display: 'block' }}>
+                Base Properties
+              </Typography>
+              {basePropsLoading && <CircularProgress size={14} sx={{ my: 0.5 }} />}
+              {basePropertyDefs?.map(def => {
+                const colId = `baseProp:${def.id}`
+                return (
+                  <FormControlLabel
+                    key={colId}
+                    label={def.name}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={visibleColumnIds.includes(colId)}
+                        onChange={() => handleToggle(colId)}
+                      />
+                    }
+                  />
+                )
+              })}
+            </>
+          )}
         </Box>
       </Popover>
     </Box>

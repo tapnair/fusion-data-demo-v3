@@ -1129,4 +1129,174 @@ Updated this file (`prompt_history.md`) with all prompts from this session.
 
 ---
 
+```
+The Autodesk APS viewer is a wrapper around 3js, do research on both the Autodesk Viewer API
+and the 3js api and build a plan that will display the properties of a selected component in
+the viewer in a new flyout tab on the right side of the viewer panel. Once the viewer is
+loaded with a design and then in the viewer window if a user selects a component a new table
+object should slide out from the right that display relevant properties from the "bubble" in
+the 3js db file. Create a plan for this called viewer_selection.md in the /plans folder and
+ask me any important questions 1 by 1 and update the plan accordingly.
+```
+Researched APS Viewer v7 API in depth: `SELECTION_CHANGED_EVENT`, `getProperties()` return shape, `InstanceTree` hierarchy traversal, `BubbleNode` concept, `PropDbLoader`, `AGGREGATE_SELECTION_CHANGED_EVENT`, React integration patterns. Created `plans/viewer_selection.md` covering: `useViewerSelection` hook, `ViewerPropertiesPanel` slide-out component, `useApsViewer` return value extension, and `ApsViewer` wiring. Asked 3 questions one at a time:
+1. **Hidden properties** → *Show via toggle*
+2. **Property layout** → *Accordion groups*
+3. **Panel behaviour** → *Push/resize the viewer*
+
+Updated plan with all three decisions.
+
+---
+
+```
+commit all current changes to this repo with an appropriate comment
+```
+Staged and committed all changes: APS Viewer implementation, DM API tip version lookup, URL routing hooks, Contents tab, and viewer selection plan. Pushed to `origin/main`.
+
+---
+
+```
+implement the viewer_selection.md plan using as many agents as is feasible for the task
+```
+Launched 2 parallel agents:
+- **Agent 1**: Created `src/types/viewerSelection.types.ts`, updated `src/types/autodesk-viewer.d.ts` (added `SELECTION_CHANGED_EVENT`, `PropertyResult`, `Property`, `InstanceTree`, `Model` types and `getProperties`, `getSelection`, `clearSelection`, `removeEventListener` to `GuiViewer3D`), updated `src/hooks/useApsViewer.ts` to return `viewerRef` and `viewerInitialized`, created `src/hooks/useViewerSelection.ts`
+- **Agent 2**: Created `src/components/viewer/ViewerPropertiesPanel.tsx` (accordion groups, show-hidden toggle, 2-column grid), updated `src/components/viewer/ApsViewer.tsx` (flex row layout, sliding panel wrapper, `resize()` after transition)
+
+TypeScript compiled clean.
+
+---
+
+```
+in the bubble node structure when a user selects an item, it appears to be selecting the
+"body" object. In the particular schema that the Autodesk viewer implements it appears that
+the selected "body" object always has a "component" object as a parent. When displaying the
+properties slide out, also show the parent component properties of whatever body is selected.
+Update the plan, ask me any question and then update the plan, then implement the changes
+as required.
+```
+Updated `plans/viewer_selection.md` to add parent component property fetching. Asked one clarifying question: **How to display body + component properties** → *Two named sections (COMPONENT first, BODY below)*. Updated plan with the decision. Launched 2 parallel agents:
+- **Agent 1**: Updated `ViewerSelection` type to add `parentDbId`, `parentName`, `parentProperties` fields; rewrote `useViewerSelection.ts` to make sequential nested `getProperties` calls (body first, then parent component inside the body callback)
+- **Agent 2**: Updated `ViewerPropertiesPanel.tsx` to render COMPONENT and BODY sections with a divider between them, each with their own accordion groups
+
+Also fixed 2 pre-existing TypeScript errors (`ApolloError` import path in base properties hooks). TypeScript clean.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. Follow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
+```
+when a user has selected the BOM tab for a design I would like to add more optional columns.
+There is a property on a Component object that will display "Base Properties for that
+component". To fully understand these properties you must first get the property collection
+that they are in. This should only happen once. For each component in the BOM view if any
+base property columns are selected the base properties for each component should be fetched
+independently async from the main table structure display. The values for all base props for
+each component should be available in the apollo cache such that if a new base property is
+added to the table and the props have already been fetched it should not trigger a refetch for
+all the rows. Refetch should only occur if a row is collapsed and then re-expanded. Even if
+this happens if there is a current value it should still be displayed until a new value is
+fetched. Use the following documentation links to build a plan and save it to
+plans/base_properties.md
+```
+Docs site is JS-rendered and couldn't be fetched. Explored codebase to understand BOM architecture (`BomTab`, `bomColumns`, `useBomLoader`, `BomColumnSettings`, `bom.types`, `settings`). Created `plans/base_properties.md` covering: hub-level property definition collections (fetched once), per-component base property values (all props in one query), `cache-first` policy so adding a new column doesn't refetch, stale-key tracking for re-expand refetch, and stale-while-revalidate display.
+
+---
+
+```
+are there any questions in the plan? if so ask me 1 by 1 and update the plan accordingly
+```
+Identified schema unknowns (docs JS-rendered, couldn't be fetched). Asked 4 questions one at a time:
+1. **Field name for base property values on Component** → *`baseProperties`* — confirmed
+2. **Property collection location** → *`Hub.basePropertyDefinitionCollections`* — fetched from hub, not component; changes infrequently; cache once per session
+3. **`basePropertyDefinitionCollections` structure** → *List of collections; flatten all — no name/ID conflicts*
+4. **`PropertyDefinition` fields** → *Referred to docs link and `schema.graphql`: `id`, `name`, `specification`, `units { id name }`, `isHidden`, `isArchived`, `isReadOnly`, `propertyBehavior`*
+
+Confirmed from `schema.graphql`: `Property` type has `name`, `displayValue`, `value` (scalar), `definition { id }`; `Component.baseProperties` returns `Properties { results [Property] }`; `PropertyDefinitionCollection.definitions` is paginated. Updated `plans/base_properties.md` with all schema-verified field names.
+
+---
+
+```
+implement the plan with as many agents as is feasible for this task.
+```
+Launched 5 agents across 3 rounds:
+
+**Round 1 (parallel):**
+- **Agent 1**: Created `src/graphql/queries/baseProperties.ts`, `src/hooks/useHubBasePropertyDefinitions.ts`, `src/hooks/useBomBaseProperties.ts`
+- **Agent 2**: Extended `src/hooks/useBomLoader.ts` with `staleBasePropsKeys` state, stale key collection on collapse, `clearStaleKey` callback, updated return value
+- **Agent 3**: Updated `src/components/detail/tabs/bom/BomColumnSettings.tsx` — added "Base Properties" section with divider, label, spinner, and per-definition checkboxes
+
+**Round 2:**
+- **Agent 4**: Updated `src/components/detail/tabs/bom/bomColumns.ts` — extended `BomCellContext`, added `BomBasePropCellInner`/`BomBasePropCell` with stale refetch logic, added `makeBasePropertyColumn` factory
+
+**Round 3:**
+- **Agent 5**: Wired everything in `src/components/detail/tabs/bom/BomTab.tsx` — `allColumns` merge, updated `cellContext`, `gridColumns` from `allColumns`, new props to `BomColumnSettings`
+
+Fixed TypeScript errors: removed `ApolloError` import (not exported from `@apollo/client` in v4); replaced with `ReturnType<typeof useQuery>['error']`.
+
+---
+
+```
+you need to add these properties as selectable properties to the "columns" dropdown menu on
+the BOM tab. You should prefetch the possible properties from the hub only once.
+```
+Identified root cause: `useHubBasePropertyDefinitions` was called inside `BomTab`, which only mounts when the BOM tab is clicked — definitions weren't fetched until the user was already on the tab. Fix: moved the hook call to `DetailPanel` (fires as soon as any item is selected). `DetailPanel` passes `basePropertyDefs` and `basePropsLoading` down to `BomTab` as props. `BomTab` no longer imports or calls the hook. Since `cache-first` is used, the same hub never triggers a second network request.
+
+---
+
+```
+I still don't see any base properties available in the columns drop down. Here is what I am seeing: [screenshot]
+```
+Reviewed screenshot confirming no "Base Properties" section in the Columns dropdown. Added diagnostic `console.debug`/`console.error` logging to `useHubBasePropertyDefinitions` to surface the raw API response (number of collections, collection names, definition counts before/after filter, any errors) in browser DevTools. Requested user check console for `[useHubBasePropertyDefinitions]` log lines to determine root cause: query error, empty collections, or all definitions filtered by `isHidden`/`isArchived`.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. Follow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
+```
+why are the base properties not showing up in the column drop down?
+```
+Investigated root cause systematically: confirmed hub ID propagation is correct, confirmed query/schema alignment, discovered the `console.debug` diagnostic logs were silently filtered by Chrome DevTools (debug level hidden by default). Changed all diagnostic logs to `console.log`. Also fixed the diagnostic log label bug — "hubId:" was accidentally logging data-presence rather than the actual hub ID value.
+
+---
+
+```
+when I click the columns button in the ui I don't get any log lines in dev tools
+```
+Confirmed root cause: `console.debug` is hidden in Chrome DevTools unless "Verbose" log level is enabled. Changed all diagnostic logging in `useHubBasePropertyDefinitions` to `console.log` so they always appear.
+
+---
+
+```
+useHubBasePropertyDefinitions.ts:30 [useHubBasePropertyDefinitions] query error for hubId urn:... : CombinedGraphQLErrors: Invalid Token. "data:search" is required in token scope.
+```
+Root cause identified: `data:search` scope was missing from `VITE_SCOPE` in all env files. Added `data:search` to `.env.local`, `.env.production`, and `.env.example`. User needed to log out and back in to get a new token with the correct scope.
+
+---
+
+```
+that worked!
+```
+Confirmed base properties now loading. Removed all diagnostic `console.log` calls from `useHubBasePropertyDefinitions` and simplified the `useMemo` back to clean production code.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. Follow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
 *Generated: 2026-03-19*

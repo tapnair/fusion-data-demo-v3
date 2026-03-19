@@ -7,12 +7,21 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import { useBomThumbnail, WORKING_STATES } from '../../../../hooks/useBomThumbnail'
 import { useBomPhysicalProperties, PHYSICAL_PROPS_WORKING_STATES } from '../../../../hooks/useBomPhysicalProperties'
 import type { BomRow } from '../../../../types/bom.types'
+import { useApolloClient } from '@apollo/client/react'
+import { useBomBaseProperties } from '../../../../hooks/useBomBaseProperties'
+import type { PropertyDefinition } from '../../../../hooks/useHubBasePropertyDefinitions'
+import {
+  GET_ROOT_COMPONENT_BASE_PROPERTIES,
+  GET_COMPONENT_BASE_PROPERTIES,
+} from '../../../../graphql/queries/baseProperties'
 
 export interface BomCellContext {
   toggleRow: (row: BomRow) => void
   loadMore: (loadMoreRow: BomRow) => void
   /** Decimal places used when formatting physical property displayValues (0–6). */
   sigFigs: number
+  staleBasePropsKeys: Set<string>
+  clearStaleKey: (key: string) => void
 }
 
 const UNIT_ABBREVIATIONS: Record<string, string> = {
@@ -290,6 +299,62 @@ function BomNameCell({ row, ctx }: { row: BomRow; ctx: BomCellContext }) {
   )
 }
 
+function BomBasePropCellInner({
+  row,
+  definitionId,
+  ctx,
+}: {
+  row: BomRow
+  definitionId: string
+  ctx: BomCellContext
+}) {
+  const componentKey = `${row.componentId}:${row.componentState ?? 'root'}`
+  const isStale = ctx.staleBasePropsKeys.has(componentKey)
+  const { loading, error, valueMap } = useBomBaseProperties(row.componentId, row.componentState)
+  const client = useApolloClient()
+
+  React.useEffect(() => {
+    if (!isStale) return
+    const query = row.componentState === null
+      ? GET_ROOT_COMPONENT_BASE_PROPERTIES
+      : GET_COMPONENT_BASE_PROPERTIES
+    const variables = row.componentState === null
+      ? { componentId: row.componentId }
+      : { componentId: row.componentId, state: row.componentState }
+    client.query({ query, variables, fetchPolicy: 'network-only' })
+      .finally(() => ctx.clearStaleKey(componentKey))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStale])
+
+  if (loading && !Object.keys(valueMap).length) {
+    return React.createElement(CircularProgress, { size: 12, sx: { color: 'text.disabled' } })
+  }
+  if (error) {
+    return React.createElement(ErrorOutlineIcon, { fontSize: 'small', sx: { color: 'text.disabled' } })
+  }
+
+  const value = valueMap[definitionId] ?? null
+  if (!value) return null
+  return React.createElement(Typography, { variant: 'body2', noWrap: true }, value)
+}
+
+function BomBasePropCell({
+  row,
+  definitionId,
+  ctx,
+}: {
+  row: BomRow
+  definitionId: string
+  ctx: BomCellContext
+}) {
+  if (row.id.startsWith('load-more:')) return null
+  return React.createElement(
+    Box,
+    { sx: { display: 'flex', alignItems: 'center', height: '100%' } },
+    React.createElement(BomBasePropCellInner, { row, definitionId, ctx })
+  )
+}
+
 export const BOM_COLUMNS: BomColumnDef[] = [
   {
     id: 'thumbnail',
@@ -396,3 +461,15 @@ export const BOM_COLUMNS: BomColumnDef[] = [
 ]
 
 export const DEFAULT_VISIBLE_COLUMNS = ['thumbnail', 'name', 'description', 'partNumber', 'material']
+
+export function makeBasePropertyColumn(def: PropertyDefinition): BomColumnDef {
+  return {
+    id: `baseProp:${def.id}`,
+    header: def.name,
+    flex: 1,
+    fetchOnDemand: true,
+    getValue: () => null,
+    renderCell: (row, ctx) =>
+      React.createElement(BomBasePropCell, { row, definitionId: def.id, ctx }),
+  }
+}

@@ -1,6 +1,7 @@
 declare namespace Autodesk {
   namespace Viewing {
     const GEOMETRY_LOADED_EVENT: string
+    const SELECTION_CHANGED_EVENT: string
 
     function Initializer(
       options: {
@@ -13,6 +14,38 @@ declare namespace Autodesk {
 
     function shutdown(): void
 
+    interface PropertyResult {
+      dbId: number
+      externalId: string
+      name: string
+      properties: Property[]
+    }
+
+    interface Property {
+      attributeName: string
+      displayCategory: string
+      displayName: string
+      displayValue: string | number
+      hidden: boolean
+      type: number
+      units: string | null
+    }
+
+    interface InstanceTree {
+      getRootId(): number
+      getNodeName(dbId: number): string
+      getNodeParentId(dbId: number): number
+      getChildCount(dbId: number): number
+    }
+
+    interface ModelData {
+      instanceTree: InstanceTree
+    }
+
+    interface Model {
+      getData(): ModelData
+    }
+
     class GuiViewer3D {
       constructor(container: HTMLElement, config?: Record<string, unknown>)
       start(): number
@@ -22,7 +55,17 @@ declare namespace Autodesk {
       loadDocumentNode(doc: any, viewable: any, options?: Record<string, unknown>): Promise<any>
       setBackgroundColor(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): void
       setLightPreset(preset: number): void
-      addEventListener(event: string, callback: () => void): void
+      addEventListener(event: string, callback: (event: any) => void): void
+      removeEventListener(event: string, callback: (event: any) => void): void
+      getSelection(): number[]
+      clearSelection(): void
+      select(dbIds: number | number[]): void
+      getProperties(
+        dbId: number,
+        onSuccess: (result: PropertyResult) => void,
+        onError?: (errCode: number, errMsg: string) => void
+      ): void
+      model: Model
     }
 
     namespace Document {

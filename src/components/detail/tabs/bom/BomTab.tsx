@@ -5,10 +5,11 @@ import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef } from '@mui/x-data-grid'
 import { useBomLoader } from '../../../../hooks/useBomLoader'
 import { BomColumnSettings } from './BomColumnSettings'
-import { BOM_COLUMNS, DEFAULT_VISIBLE_COLUMNS } from './bomColumns'
+import { BOM_COLUMNS, DEFAULT_VISIBLE_COLUMNS, makeBasePropertyColumn } from './bomColumns'
 import type { BomCellContext } from './bomColumns'
 import type { BomRow } from '../../../../types/bom.types'
 import type { NavNode } from '../../../../types/nav.types'
+import type { PropertyDefinition } from '../../../../hooks/useHubBasePropertyDefinitions'
 import type { WeaveDensity } from '../../../../theme/types'
 import { loadSettings, saveSettings } from '../../../../settings'
 
@@ -20,11 +21,23 @@ const DENSITY_MAP: Record<WeaveDensity, 'compact' | 'standard' | 'comfortable'> 
 
 interface BomTabProps {
   node: NavNode
+  basePropertyDefs: PropertyDefinition[]
+  basePropsLoading: boolean
 }
 
-export function BomTab({ node }: BomTabProps) {
+export function BomTab({ node, basePropertyDefs, basePropsLoading }: BomTabProps) {
   const theme = useTheme()
-  const { rows, loading, error, toggleRow, loadMore } = useBomLoader(node)
+  const { rows, loading, error, toggleRow, loadMore, staleBasePropsKeys, clearStaleKey } = useBomLoader(node)
+
+  const basePropertyColumns = useMemo(
+    () => basePropertyDefs.map(makeBasePropertyColumn),
+    [basePropertyDefs]
+  )
+
+  const allColumns = useMemo(
+    () => [...BOM_COLUMNS, ...basePropertyColumns],
+    [basePropertyColumns]
+  )
 
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(
     () => loadSettings().bomVisibleColumns ?? DEFAULT_VISIBLE_COLUMNS
@@ -45,13 +58,13 @@ export function BomTab({ node }: BomTabProps) {
   }
 
   const cellContext: BomCellContext = useMemo(
-    () => ({ toggleRow, loadMore, sigFigs }),
-    [toggleRow, loadMore, sigFigs]
+    () => ({ toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey }),
+    [toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey]
   )
 
   const gridColumns: GridColDef[] = useMemo(
     () =>
-      BOM_COLUMNS.filter(c => visibleColumnIds.includes(c.id)).map(c => ({
+      allColumns.filter(c => visibleColumnIds.includes(c.id)).map(c => ({
         field: c.id,
         headerName: c.header,
         width: c.width,
@@ -62,7 +75,7 @@ export function BomTab({ node }: BomTabProps) {
           ? (params: any) => c.renderCell!(params.row as BomRow, cellContext)
           : undefined,
       })),
-    [visibleColumnIds, cellContext]
+    [allColumns, visibleColumnIds, cellContext]
   )
 
   if (loading) {
@@ -98,6 +111,8 @@ export function BomTab({ node }: BomTabProps) {
         onChange={handleColumnChange}
         sigFigs={sigFigs}
         onSigFigsChange={handleSigFigsChange}
+        basePropertyDefs={basePropertyDefs}
+        basePropsLoading={basePropsLoading}
       />
       <DataGrid
         rows={rows}

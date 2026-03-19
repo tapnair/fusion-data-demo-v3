@@ -2,38 +2,37 @@
 
 ## Overview
 
-Add dynamically-generated optional columns to the BOM tab for **base properties** — custom user-defined properties attached to components via a project-level Property Collection. Column options are driven by the property definitions fetched once from the root component's collection. Each visible row's property values are fetched independently and asynchronously; all values for a component arrive in a single query so that enabling an additional column does not trigger any new network requests. Collapsed rows are marked stale and refetched (with the cached value shown immediately) when re-expanded.
+Add dynamically-generated optional columns to the BOM tab for **base properties** — custom user-defined properties attached to components via a hub-level Property Definition Collection. Column options are driven by the property definitions fetched **once per hub per session** from `Hub.basePropertyDefinitionCollections`. Each visible row's property values are fetched independently and asynchronously via `Component.baseProperties`; all values for a component arrive in a single query so that enabling an additional column does not trigger any new network requests. Collapsed rows are marked stale and silently refetched (with the cached value shown immediately) when re-expanded.
 
 ---
 
-## API Background
+## API Structure (schema-verified)
 
-> **Important:** The docs site at the provided URLs is JavaScript-rendered and could not be fetched directly. The field names below are based on the APS Manufacturing Data Model API v3 schema. **Verify every field name against the GraphQL playground or schema introspection before writing queries.** Key things to confirm:
-> - Exact field name for `component.baseProperties` (may differ)
-> - Exact field name for `component.propertyCollection`
-> - Whether `propertyCollection.properties` is paginated or a flat array
-> - Exact shape of each base property value (`value` vs `displayValue`, is it a scalar or object?)
-> - Whether a property definition `type` field exists and what its values are
+All field names below are confirmed against `schema.graphql` in this repo.
 
-### Property Collection (schema — one per design)
+### Hub-level: Property Definition Collections
 
-A project-level schema that defines which user-created properties exist, their names, types, and units. Lives on the root component. Fetched **once** per BOM view and drives which columns appear in the column picker.
+`Hub.basePropertyDefinitionCollections` returns a `PropertyDefinitionCollections` object containing a flat list of collections. Each collection's `definitions` field returns the `PropertyDefinition` objects. Flatten all definitions across all collections — there will never be name or ID conflicts.
 
 ```graphql
-query GetPropertyCollection($componentId: ID!) {
-  component(componentId: $componentId, composition: WORKING) {
+query GetHubBasePropertyDefinitions($hubId: ID!) {
+  hub(hubId: $hubId) {
     id
-    propertyCollection {
-      id
-      name
-      properties(pagination: { limit: 100 }) {
-        results {
-          id
-          name
-          type        # e.g. "STRING" | "BOOLEAN" | "REAL" | "INTEGER"
-          units { id name }
-          isReadOnly
-          isRequired
+    basePropertyDefinitionCollections {
+      results {
+        id
+        name
+        definitions {
+          results {
+            id
+            name
+            specification    # e.g. "STRING" | "REAL" | "INTEGER" | "BOOLEAN"
+            units { id name }
+            isHidden
+            isArchived
+            isReadOnly
+            propertyBehavior # "STANDARD" | "TIMELESS"
+          }
         }
       }
     }
@@ -41,19 +40,34 @@ query GetPropertyCollection($componentId: ID!) {
 }
 ```
 
-### Component Base Properties (values — one fetch per component)
+**`PropertyDefinition` fields used:**
 
-The per-component values. All properties are fetched in a single query per component. Each entry links back to its definition via `propertyDefinition.id`.
+| Field | Type | Purpose |
+|---|---|---|
+| `id` | `ID!` | Column ID key (`baseProp:${id}`), value map key |
+| `name` | `String!` | Column header label |
+| `specification` | `String` | Data type hint for future formatting (`"STRING"`, `"REAL"`, etc.) |
+| `units` | `Units { id name }` | Optional unit suffix in cell display |
+| `isHidden` | `Boolean` | Filter out — do not show in column picker |
+| `isArchived` | `Boolean` | Filter out — do not show in column picker |
+| `isReadOnly` | `Boolean` | Informational only (display only, no editing in scope) |
+
+### Component-level: Base Property Values
+
+`Component.baseProperties` returns a `Properties` object. **Pagination is not supported by the API** — all values are returned in a single call despite the `Properties` wrapper type.
 
 ```graphql
-# Root component (composition: WORKING — same pattern as physicalProperties)
+# Root component (composition: WORKING)
 query GetRootComponentBaseProperties($componentId: ID!) {
   component(componentId: $componentId, composition: WORKING) {
     id
     baseProperties {
-      propertyDefinition { id name }
-      value
-      displayValue
+      results {
+        name
+        displayValue
+        value
+        definition { id }
+      }
     }
   }
 }
@@ -63,15 +77,26 @@ query GetComponentBaseProperties($componentId: ID!, $state: String!) {
   component(componentId: $componentId, state: $state) {
     id
     baseProperties {
-      propertyDefinition { id name }
-      value
-      displayValue
+      results {
+        name
+        displayValue
+        value
+        definition { id }
+      }
     }
   }
 }
 ```
 
-**Critical design point:** Both queries fetch **all** base properties for the component in one request. Apollo normalizes the result by `(componentId, state)`. Adding a second base-property column later does not require a new network call — the full value set is already in cache.
+**`Property` fields used:**
+
+| Field | Type | Purpose |
+|---|---|---|
+| `displayValue` | `String` | Primary display string — use this first |
+| `value` | `PropertyValue` (scalar) | Fallback if `displayValue` is null — call `String(value)` |
+| `definition.id` | `ID!` | Key for value map lookup by column |
+
+**Key design point:** Both queries fetch **all** base properties for the component in one request. Apollo normalises the result by `(componentId, state)`. Enabling a second base-property column later costs **zero extra network requests** — the value for that definition is already in cache.
 
 ---
 
@@ -79,14 +104,15 @@ query GetComponentBaseProperties($componentId: ID!, $state: String!) {
 
 | Scenario | Fetch Policy | Behaviour |
 |---|---|---|
-| Row becomes visible, base prop column enabled, first time | `cache-first` | Cache miss → network request, result cached |
+| Property definitions (hub) | `cache-first` | Fetched once per hub per session; never refetched unless Apollo cache is cleared |
+| Row becomes visible, first base prop column enabled | `cache-first` | Cache miss → network request; all property values cached together |
 | Second base prop column enabled, row already visible | `cache-first` | Cache hit → instant; **zero** new network requests |
 | Row collapsed | — | Descendant `componentId:state` keys added to `staleBasePropsKeys` |
-| Row re-expanded (was previously collapsed) | `cache-first` + imperative background refetch | **Cached (stale) value shown immediately**; background `network-only` refetch updates cache; cells re-render automatically when cache entry changes |
-| Stale key cleared | — | After the imperative refetch completes; key removed from `staleBasePropsKeys` |
-| No base prop columns selected | — | Neither `GET_PROPERTY_COLLECTION` (after root is known) nor `GET_COMPONENT_BASE_PROPERTIES` queries fire |
+| Row re-expanded (was previously collapsed) | `cache-first` + imperative background refetch | **Stale cached value shown immediately**; one `network-only` refetch per stale component updates cache; cells re-render automatically |
+| Stale key cleared | — | After imperative refetch completes; key removed from set |
+| No base prop columns selected | — | `GetComponentBaseProperties` queries never fire |
 
-**How stale-while-revalidate works here:** Apollo `useQuery` with `cache-first` returns the cached value immediately. When an imperative `client.query({ fetchPolicy: 'network-only' })` completes and writes a new value to the cache, all active `useQuery` subscribers for that query key automatically re-render with the new value — with no additional hook configuration needed.
+**How stale-while-revalidate works:** `useQuery` with `cache-first` returns the cached value immediately. When an imperative `client.query({ fetchPolicy: 'network-only' })` completes and writes new values to the Apollo cache, all active `useQuery` subscribers for that query key re-render automatically — no additional hook configuration needed.
 
 ---
 
@@ -96,15 +122,19 @@ query GetComponentBaseProperties($componentId: ID!, $state: String!) {
 
 | Data | Owner | Mechanism |
 |---|---|---|
-| Property definitions (schema) | `usePropertyCollection` hook | `useQuery`, `cache-first`, runs once when root componentId is known |
-| Base property values per component | Apollo cache (written by `useBomBaseProperties` per row) | `useQuery`, `cache-first` |
-| Stale component keys (need refetch on next expand) | `useBomLoader` → `staleBasePropsKeys: Set<string>` | React state; updated on collapse and cleared after refetch |
-| Selected base prop column IDs | `BomTab` state + `settings.ts` | `bomVisibleColumns` in localStorage; base prop column IDs use `baseProp:{definitionId}` prefix |
+| Property definitions | `useHubBasePropertyDefinitions(hubId)` | `useQuery`, `cache-first`, runs once per hub |
+| Base property values per component | Apollo cache (via `useBomBaseProperties` per row) | `useQuery`, `cache-first` |
+| Stale component keys (need refetch on next expand) | `useBomLoader` → `staleBasePropsKeys: Set<string>` | React state; updated on collapse, cleared after refetch |
+| Selected base prop column IDs | `BomTab` state + `settings.ts` | `bomVisibleColumns` in localStorage; prefix `baseProp:{definitionId}` |
 
 ### Key identifiers
 
 - **Stale key format**: `` `${componentId}:${componentState ?? 'root'}` ``
 - **Column ID format**: `` `baseProp:${propertyDefinitionId}` ``
+
+### Hub ID availability
+
+`BomTab` receives `node: NavNode` which has `node.hubId`. This is passed directly to `useHubBasePropertyDefinitions`.
 
 ---
 
@@ -115,31 +145,33 @@ query GetComponentBaseProperties($componentId: ID!, $state: String!) {
 #### `src/graphql/queries/baseProperties.ts`
 
 Three GQL documents:
-1. `GET_PROPERTY_COLLECTION` — root component `propertyCollection` + paginated `properties.results`
-2. `GET_ROOT_COMPONENT_BASE_PROPERTIES` — root component `baseProperties` (with `composition: WORKING`)
-3. `GET_COMPONENT_BASE_PROPERTIES` — non-root component `baseProperties` (with `state: $state`)
+1. `GET_HUB_BASE_PROPERTY_DEFINITIONS` — `hub.basePropertyDefinitionCollections.results[].definitions.results[]`
+2. `GET_ROOT_COMPONENT_BASE_PROPERTIES` — `component(composition: WORKING).baseProperties.results[]`
+3. `GET_COMPONENT_BASE_PROPERTIES` — `component(state: $state).baseProperties.results[]`
 
-#### `src/hooks/usePropertyCollection.ts`
+#### `src/hooks/useHubBasePropertyDefinitions.ts`
 
 ```ts
 export interface PropertyDefinition {
   id: string
   name: string
-  type: string   // 'STRING' | 'BOOLEAN' | 'REAL' | 'INTEGER' | etc.
+  specification: string | null   // 'STRING' | 'REAL' | 'INTEGER' | 'BOOLEAN' | etc.
   units: { id: string; name: string } | null
+  isReadOnly: boolean | null
 }
 
-export function usePropertyCollection(rootComponentId: string | null): {
+export function useHubBasePropertyDefinitions(hubId: string | null | undefined): {
   definitions: PropertyDefinition[]
   loading: boolean
   error: ApolloError | undefined
 }
 ```
 
-- `skip: !rootComponentId` — does not fire until root component is known
-- `fetchPolicy: 'cache-first'` — fires only once per Apollo cache lifetime
-- Flattens `propertyCollection.properties.results` into a `PropertyDefinition[]`
-- Returns an empty array while loading or if there is no property collection
+- `skip: !hubId`
+- `fetchPolicy: 'cache-first'` — fires once per hub per Apollo cache lifetime
+- Flattens all collections: `results.flatMap(c => c.definitions.results)`
+- **Filters out** definitions where `isHidden === true` or `isArchived === true`
+- Returns sorted by `name` for predictable column picker order
 
 #### `src/hooks/useBomBaseProperties.ts`
 
@@ -150,14 +182,15 @@ export function useBomBaseProperties(
 ): {
   loading: boolean
   error: ApolloError | undefined
-  // Map: propertyDefinitionId → displayValue (preferred) or value cast to string
+  // Map: propertyDefinitionId → display string (displayValue ?? String(value) ?? null)
   valueMap: Record<string, string | null>
 }
 ```
 
-- Uses root vs non-root query variant, same `isRoot = componentState === null` pattern as `useBomPhysicalProperties`
+- `isRoot = componentState === null` pattern (same as `useBomPhysicalProperties`)
 - `fetchPolicy: 'cache-first'`
-- Parses the `baseProperties` array into `Record<definitionId, displayValue>` so any column can look up its value in O(1) — no per-property queries
+- Parses `baseProperties.results` into `Record<definition.id, displayValue ?? String(value)>`
+- `value` is a `PropertyValue` scalar — if `displayValue` is null, convert with `String(value)`, treating `null`/`undefined` as `null`
 
 ### Modified Files
 
@@ -167,31 +200,32 @@ export function useBomBaseProperties(
 
 #### `src/graphql/queries/bom.ts`
 
-**No changes.** Base properties are fetched via a separate query family to keep cache entries independent.
+**No changes.** Base properties are fetched in a separate query family.
 
 #### `src/hooks/useBomLoader.ts`
 
-Add stale-key tracking to support refetch-on-re-expand:
+Add stale-key tracking for refetch-on-re-expand:
 
 ```ts
-// New state inside useBomLoader
+// New state
 const [staleBasePropsKeys, setStaleBasePropsKeys] = useState<Set<string>>(new Set())
 
-// On collapse: collect all descendant componentId:state keys → mark stale
-// (inside the setRows callback already used for collapse)
-const descendantKeys: string[] = []
+// On collapse — inside the existing setRows callback, before filtering:
+const keysToStale: string[] = []
 prev.forEach(r => {
   if (toRemove.has(r.id) && !r.id.startsWith('load-more:')) {
-    descendantKeys.push(`${r.componentId}:${r.componentState ?? 'root'}`)
+    keysToStale.push(`${r.componentId}:${r.componentState ?? 'root'}`)
   }
 })
-setStaleBasePropsKeys(prev => {
-  const next = new Set(prev)
-  descendantKeys.forEach(k => next.add(k))
-  return next
-})
+if (keysToStale.length) {
+  setStaleBasePropsKeys(prev => {
+    const next = new Set(prev)
+    keysToStale.forEach(k => next.add(k))
+    return next
+  })
+}
 
-// New helper: called by cells after their background refetch completes
+// New helper called by cells after their background refetch completes
 const clearStaleKey = useCallback((key: string) => {
   setStaleBasePropsKeys(prev => {
     const next = new Set(prev)
@@ -213,8 +247,8 @@ export interface BomCellContext {
   toggleRow: (row: BomRow) => void
   loadMore: (loadMoreRow: BomRow) => void
   sigFigs: number
-  staleBasePropsKeys: Set<string>      // NEW
-  clearStaleKey: (key: string) => void // NEW
+  staleBasePropsKeys: Set<string>       // NEW
+  clearStaleKey: (key: string) => void  // NEW
 }
 ```
 
@@ -235,8 +269,8 @@ function BomBasePropCellInner({
   const { loading, error, valueMap } = useBomBaseProperties(row.componentId, row.componentState)
   const client = useApolloClient()
 
-  // One background refetch when this component was previously collapsed
-  // cache-first useQuery shows stale value immediately; cache update re-renders the cell
+  // One background refetch when this component was previously collapsed.
+  // cache-first useQuery shows stale value immediately; cache update triggers re-render.
   useEffect(() => {
     if (!isStale) return
     const query = row.componentState === null
@@ -249,6 +283,7 @@ function BomBasePropCellInner({
       .finally(() => ctx.clearStaleKey(componentKey))
   }, [isStale]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Show loading indicator only on first fetch (valueMap empty = never loaded)
   if (loading && !Object.keys(valueMap).length) {
     return React.createElement(CircularProgress, { size: 12, sx: { color: 'text.disabled' } })
   }
@@ -279,7 +314,7 @@ function BomBasePropCell({
 }
 ```
 
-**Add column factory function** (exported for use in `BomTab`):
+**Add column factory (exported):**
 
 ```ts
 export function makeBasePropertyColumn(def: PropertyDefinition): BomColumnDef {
@@ -297,7 +332,7 @@ export function makeBasePropertyColumn(def: PropertyDefinition): BomColumnDef {
 
 #### `src/components/detail/tabs/bom/BomColumnSettings.tsx`
 
-Extend props to accept the property definitions and a loading flag:
+Extend props:
 
 ```ts
 interface BomColumnSettingsProps {
@@ -306,14 +341,13 @@ interface BomColumnSettingsProps {
   sigFigs: number
   onSigFigsChange: (n: number) => void
   basePropertyDefs?: PropertyDefinition[]  // NEW
-  basePropsLoading?: boolean               // NEW — shows skeleton while collection loads
+  basePropsLoading?: boolean               // NEW
 }
 ```
 
-In the column picker `Popover`, render base property columns below existing columns in a labelled section:
+Add a labelled "Base Properties" section in the column picker `Popover`, below the existing `BOM_COLUMNS` list:
 
 ```tsx
-{/* Inside the popover Box, after the existing BOM_COLUMNS list */}
 {(basePropsLoading || (basePropertyDefs && basePropertyDefs.length > 0)) && (
   <>
     <Divider sx={{ my: 1 }} />
@@ -341,28 +375,19 @@ In the column picker `Popover`, render base property columns below existing colu
 )}
 ```
 
-`handleToggle` already works for any column ID — no changes needed there.
+`handleToggle` already works for any column ID — no changes needed.
 
 #### `src/components/detail/tabs/bom/BomTab.tsx`
 
-1. Destructure `staleBasePropsKeys` and `clearStaleKey` from `useBomLoader`
-2. Derive `rootComponentId` from the first root row (available once rows are populated)
-3. Call `usePropertyCollection(rootComponentId)`
-4. Generate `basePropertyColumns` with `makeBasePropertyColumn`
-5. Merge into `allColumns` for grid column filtering
-6. Thread `staleBasePropsKeys` and `clearStaleKey` into `cellContext`
-7. Pass `basePropertyDefs` and `basePropsLoading` to `BomColumnSettings`
-
 ```tsx
-const { rows, loading, error, toggleRow, loadMore, staleBasePropsKeys, clearStaleKey } =
-  useBomLoader(node)
+const {
+  rows, loading, error, toggleRow, loadMore,
+  staleBasePropsKeys, clearStaleKey,          // NEW
+} = useBomLoader(node)
 
-const rootComponentId = useMemo(() => {
-  const rootRow = rows.find(r => r.id.startsWith('root:'))
-  return rootRow?.componentId ?? null
-}, [rows])
-
-const { definitions, loading: propCollLoading } = usePropertyCollection(rootComponentId)
+// Definitions from hub — node.hubId is always set for DesignItem nodes
+const { definitions, loading: propDefsLoading } =
+  useHubBasePropertyDefinitions(node.hubId)
 
 const basePropertyColumns = useMemo(
   () => definitions.map(makeBasePropertyColumn),
@@ -379,7 +404,7 @@ const cellContext: BomCellContext = useMemo(
   [toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey]
 )
 
-// Filter from allColumns (not BOM_COLUMNS)
+// Build grid columns from allColumns (not just BOM_COLUMNS)
 const gridColumns: GridColDef[] = useMemo(
   () =>
     allColumns
@@ -406,14 +431,14 @@ Pass to `BomColumnSettings`:
   onChange={handleColumnChange}
   sigFigs={sigFigs}
   onSigFigsChange={handleSigFigsChange}
-  basePropertyDefs={definitions}
-  basePropsLoading={propCollLoading}
+  basePropertyDefs={definitions}       // NEW
+  basePropsLoading={propDefsLoading}   // NEW
 />
 ```
 
 #### `src/settings.ts`
 
-**No changes.** Base property column IDs (`baseProp:${id}`) are stored in the existing `bomVisibleColumns` string array. If the property collection changes between sessions (definitions removed/renamed), stale IDs in `bomVisibleColumns` are silently ignored because the column won't appear in `allColumns`.
+**No changes.** Base property column IDs (`baseProp:${id}`) are stored in the existing `bomVisibleColumns` string array alongside standard column IDs. Stale IDs (from archived/deleted definitions) are silently ignored since they won't appear in `allColumns`.
 
 ---
 
@@ -421,66 +446,57 @@ Pass to `BomColumnSettings`:
 
 | Scenario | Behaviour |
 |---|---|
-| Property collection query fails | `usePropertyCollection` returns `error`; no base property section shown in column picker; no base property queries fired |
-| Individual component base properties query fails | Cell shows `ErrorOutlineIcon` (same as `BomPhysicalPropertiesCell`); other rows unaffected |
-| Component has no base properties set | `valueMap` is empty; cells render nothing (`null`) for that row |
-| Property collection is empty (no definitions) | Base properties section is hidden from column picker; no queries fire |
+| Hub property definitions query fails | `useHubBasePropertyDefinitions` returns `error`; "Base Properties" section hidden from column picker; no `baseProperties` component queries fire |
+| Individual component base properties query fails | Cell shows `ErrorOutlineIcon`; other rows unaffected |
+| Component has no value set for a given property | `valueMap[definitionId]` is `null`; cell renders empty |
+| Property collection is empty or all definitions are hidden/archived | "Base Properties" section hidden from column picker |
+| `node.hubId` is undefined | `useHubBasePropertyDefinitions` skips (no query fires) |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1 — Verify API schema
-Before writing any code, open the GraphQL playground (authenticated) and introspect the `Component` type to confirm:
-- `component.propertyCollection` field name and shape
-- `component.baseProperties` field name and shape
-- `BasePropertyValue` object structure (`value`, `displayValue`, `propertyDefinition`)
-- `PropertyDefinition` object structure (`id`, `name`, `type`, `units`)
-- Whether `propertyCollection.properties` is paginated (needs `results` wrapper) or flat
+### Phase 1 — GraphQL queries
+Create `src/graphql/queries/baseProperties.ts` with the three query documents using verified field names from `schema.graphql`.
 
-Adjust the query structures in this plan as needed.
+### Phase 2 — `useHubBasePropertyDefinitions` hook
+Create hook. Verify in browser console that the flattened `definitions` array is populated with the expected property names when a Design item is selected.
 
-### Phase 2 — GraphQL queries
-Create `src/graphql/queries/baseProperties.ts` with verified queries.
+### Phase 3 — `useBomBaseProperties` hook
+Create hook. Verify `valueMap` structure against a real API response.
 
-### Phase 3 — `usePropertyCollection` hook
-Create hook; test by rendering the definitions count in a `console.log` from `BomTab`.
+### Phase 4 — `useBomLoader` stale tracking
+Extend `toggleRow` collapse branch to populate `staleBasePropsKeys`. Add `clearStaleKey`. No changes to expand logic.
 
-### Phase 4 — `useBomBaseProperties` hook
-Create hook; verify the `valueMap` structure against a real API response.
+### Phase 5 — Column definitions
+Add `BomBasePropCellInner`, `BomBasePropCell`, `makeBasePropertyColumn` to `bomColumns.ts`. Extend `BomCellContext`. Add imports: `useBomBaseProperties`, `GET_ROOT_COMPONENT_BASE_PROPERTIES`, `GET_COMPONENT_BASE_PROPERTIES`, `useApolloClient`.
 
-### Phase 5 — `useBomLoader` stale tracking
-Extend `toggleRow` collapse branch and add `clearStaleKey`; no changes to expand path.
+### Phase 6 — `BomColumnSettings` update
+Add "Base Properties" section with `Divider` separator and labelled group.
 
-### Phase 6 — Column definitions
-Add `BomBasePropCellInner`, `BomBasePropCell`, `makeBasePropertyColumn`, and the new `BomCellContext` fields to `bomColumns.ts`. Add the necessary imports (`useBomBaseProperties`, `GET_ROOT_COMPONENT_BASE_PROPERTIES`, `GET_COMPONENT_BASE_PROPERTIES`, `useApolloClient`).
+### Phase 7 — `BomTab` wiring
+Wire all pieces. Verify `node.hubId` is always present for `DesignItem` nodes (it is — propagated from NavTree).
 
-### Phase 7 — `BomColumnSettings` update
-Add the "Base Properties" section to the column picker popover.
+### Phase 8 — Verify
 
-### Phase 8 — `BomTab` wiring
-Wire all pieces together in `BomTab.tsx`.
-
-### Phase 9 — Verify
-
-- [ ] No base prop columns selected → zero `baseProperties` network requests
-- [ ] Enable one base prop column → each visible row fires one `GET_*BaseProperties` query; column shows values
-- [ ] Enable a second base prop column → **zero new network requests**; values appear instantly from cache
-- [ ] Column picker shows "Base Properties" section with definitions from property collection
+- [ ] No base prop columns selected → zero `GetComponentBaseProperties` network requests
+- [ ] `GetHubBasePropertyDefinitions` fires once when BOM tab opens; subsequent opens are cache hits
+- [ ] "Base Properties" section appears in column picker with correct property names
+- [ ] Hidden and archived definitions do not appear in column picker
+- [ ] Enable one base prop column → each visible row fires one `GetComponentBaseProperties` query
+- [ ] Enable a second base prop column → **zero new network requests**; values appear instantly
 - [ ] Collapse a row with children → descendants added to `staleBasePropsKeys`
-- [ ] Re-expand that row → stale cells show old values immediately, trigger one background refetch each, update when response arrives
-- [ ] After refetch completes → stale key removed from set; no further background refetches on subsequent renders
-- [ ] Navigate away and back to BOM tab → `usePropertyCollection` hits cache; no redundant fetches
-- [ ] Component with no base property values set → cells render empty (no error)
-- [ ] Property collection query fails → column picker shows no base properties section; no errors in BOM rows
-- [ ] TypeScript: `npx tsc --noEmit` passes with zero errors
+- [ ] Re-expand → stale cells show old values immediately, fire one background refetch each, update on response
+- [ ] After refetch → key removed from `staleBasePropsKeys`; no further background refetches
+- [ ] Switch item in tree → hub definitions served from cache (no re-fetch for same hub)
+- [ ] Switch to different hub → `GetHubBasePropertyDefinitions` fires for new hub; cached for remainder of session
+- [ ] `npx tsc --noEmit` passes with zero errors
 
 ---
 
 ## Non-goals (this phase)
 
 - Editing base property values (read-only display only)
-- Pagination of property definitions (assume ≤ 100 per collection; `limit: 100` is sufficient)
-- Multiple property collections per design
 - Sorting rows by base property column values
-- Displaying property type metadata (units, type) in column headers
+- Displaying `specification` or `units` in column headers (name only)
+- Multiple hubs with conflicting property definition IDs

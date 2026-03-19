@@ -90,6 +90,7 @@ export function useBomLoader(node: NavNode) {
   const [rows, setRows] = useState<BomRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [staleBasePropsKeys, setStaleBasePropsKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -159,6 +160,19 @@ export function useBomLoader(node: NavNode) {
     if (row.isExpanded) {
       setRows(prev => {
         const toRemove = getDescendantIds(prev, row.id)
+        const keysToStale: string[] = []
+        prev.forEach(r => {
+          if (toRemove.has(r.id) && !r.id.startsWith('load-more:')) {
+            keysToStale.push(`${r.componentId}:${r.componentState ?? 'root'}`)
+          }
+        })
+        if (keysToStale.length) {
+          setStaleBasePropsKeys(prev => {
+            const next = new Set(prev)
+            keysToStale.forEach(k => next.add(k))
+            return next
+          })
+        }
         return prev
           .filter(r => !toRemove.has(r.id))
           .map(r => r.id === row.id ? { ...r, isExpanded: false } : r)
@@ -251,5 +265,13 @@ export function useBomLoader(node: NavNode) {
     }
   }, [client])
 
-  return { rows, loading, error, toggleRow, loadMore }
+  const clearStaleKey = useCallback((key: string) => {
+    setStaleBasePropsKeys(prev => {
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+  }, [])
+
+  return { rows, loading, error, toggleRow, loadMore, staleBasePropsKeys, clearStaleKey }
 }

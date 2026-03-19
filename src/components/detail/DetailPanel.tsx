@@ -5,6 +5,7 @@ import { useNavContext } from '../../context/NavContext'
 import { useAuth } from '../../context/AuthContext'
 import { useNavRouting, getInitialTabFromUrl } from '../../hooks/useNavRouting'
 import { useDeepLinkExpansion } from '../../hooks/useDeepLinkExpansion'
+import { useHubBasePropertyDefinitions } from '../../hooks/useHubBasePropertyDefinitions'
 import { HubDetail } from './HubDetail'
 import { ProjectDetail } from './ProjectDetail'
 import { FolderDetail } from './FolderDetail'
@@ -46,6 +47,9 @@ export function DetailPanel() {
 
   useNavRouting(activeTab, setActiveTab)
   useDeepLinkExpansion(selectedNode)
+
+  const { definitions: basePropertyDefs, loading: basePropsLoading } =
+    useHubBasePropertyDefinitions(selectedNode?.hubId)
 
   // When node changes: reset subtype, keep tab if still valid else fall back to details
   useEffect(() => {
@@ -130,7 +134,13 @@ export function DetailPanel() {
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'bom'} sx={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 'bom' && <BomTab node={selectedNode} />}
+        {activeTab === 'bom' && (
+          <BomTab
+            node={selectedNode}
+            basePropertyDefs={basePropertyDefs}
+            basePropsLoading={basePropsLoading}
+          />
+        )}
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'view'} sx={{ flex: 1, overflow: 'hidden' }}>

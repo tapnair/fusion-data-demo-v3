@@ -79,7 +79,7 @@ function buildPath(viewer, dbId): string[] {
 ## Data Model
 
 ```typescript
-// src/types/viewerSelection.types.ts  (new)
+// src/types/viewerSelection.types.ts
 
 export interface ViewerProperty {
   attributeName: string
@@ -96,7 +96,12 @@ export interface ViewerSelection {
   name: string
   externalId: string
   hierarchyPath: string[]
-  properties: ViewerProperty[]
+  properties: ViewerProperty[]          // body properties
+
+  // Parent component (always one level up from the selected body)
+  parentDbId: number | null
+  parentName: string
+  parentProperties: ViewerProperty[]    // component properties
 }
 ```
 
@@ -137,7 +142,12 @@ export function useViewerSelection(
 ```
 
 - Attaches listener when `viewerInitialized` becomes `true`
-- `SELECTION_CHANGED_EVENT` → get dbId → `getProperties()` → walk InstanceTree → `setSelection()`
+- On `SELECTION_CHANGED_EVENT`:
+  1. Get `dbId` from `event.dbIdArray[0]`
+  2. Look up `parentDbId = tree.getNodeParentId(dbId)` (the component node)
+  3. Call `getProperties(dbId)` for body props
+  4. Inside that callback, call `getProperties(parentDbId)` for component props (if parentDbId > 0)
+  5. `setSelection()` with both property sets
 - Empty `dbIdArray` → `setSelection(null)`
 - `removeEventListener` on unmount / if viewer changes
 - Does **not** expose `clearSelection` — panel close button calls `viewer.clearSelection()`
@@ -148,15 +158,18 @@ export function useViewerSelection(
 **Layout inside `ApsViewer`:**
 ```
 ┌─────────────────────────────────┬──────────────────────┐
-│                                 │  ✕  Component Name   │
-│       3D Viewer Canvas          │  ──────────────────  │
-│                                 │  Path > to > node    │
+│                                 │  ✕  Part:1           │
+│       3D Viewer Canvas          │  Assy › Sub › Part:1 │
 │                                 │  ──────────────────  │
-│                                 │  ▼ Category A        │
-│                                 │    Prop 1   Value    │
-│                                 │    Prop 2   Value    │
-│                                 │  ▶ Category B        │
-│                                 │  ▶ Category C        │
+│                                 │  COMPONENT           │
+│                                 │  ▼ General           │
+│                                 │    Name   Part:1     │
+│                                 │  ▶ Materials         │
+│                                 │  ──────────────────  │
+│                                 │  BODY                │
+│                                 │  ▼ General           │
+│                                 │    Volume  12.4 cm³  │
+│                                 │  ▶ Physical          │
 └─────────────────────────────────┴──────────────────────┘
 ```
 
@@ -174,12 +187,17 @@ is called so the WebGL canvas redraws at its new dimensions.
   - Header: component name (Typography) + "Show all" toggle `IconButton` + close `IconButton`
   - Breadcrumb: hierarchy path joined with ` › ` separators (Typography `caption`)
   - `Divider`
-  - Property groups: one `Accordion` per unique `displayCategory`, expand/collapse
-    - `AccordionSummary`: category name + count of visible properties in that category
-    - `AccordionDetails`: 2-column grid of `displayName` / `displayValue [units]` rows
+  - **COMPONENT section**: overline label "COMPONENT", followed by accordion groups
+    for `parentProperties` (one `Accordion` per `displayCategory`)
+  - `Divider`
+  - **BODY section**: overline label "BODY", followed by accordion groups
+    for `properties` (one `Accordion` per `displayCategory`)
+  - Each accordion: `AccordionSummary` with category name + visible count;
+    `AccordionDetails` with 2-column grid of `displayName` / `displayValue [units]` rows
   - Default: `hidden === true` properties are not shown
   - When "Show all" is toggled on: hidden properties render with a muted/dimmed style
     to visually distinguish them from non-hidden properties
+  - If `parentDbId` is null (no parent found), the COMPONENT section is omitted
 
 ### 4. `ApsViewer.tsx` — wiring
 
@@ -229,3 +247,6 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }) {
 
 3. **Panel behaviour** — pushes the viewer canvas (viewer shrinks). `viewer.resize()`
    called after panel open/close transition completes.
+
+4. **Body + Component sections** — two named sections (COMPONENT first, BODY below),
+   each with their own accordion groups. COMPONENT section omitted if no parent found.
