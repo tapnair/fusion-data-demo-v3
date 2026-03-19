@@ -883,4 +883,115 @@ Updated this file (`prompt_history.md`) with all prompts from this session.
 
 ---
 
-*Generated: 2026-03-03*
+```
+read the prompt_history markdown file and all the files in the plans directory to remember
+what we are doing. Also look at the current code project and start it in a dev environment
+locally
+```
+Read `prompt_history.md` and all plan files (`framework_plan.md`, `weave_v3_plan.md`, `left_nav_plan.md`, `apollo_refactor_plan.md`, `tabbed_ui_plan.md`, `bom_plan.md`, `thumbnail_column_plan.md`, `user_info_plan.md`, `make_pages_plan.md`, `physical_properties_plan.md`). Started dev server at `http://localhost:5173/`.
+
+---
+
+```
+Currently when a file is selected we have a placeholder for the 'view' tab. Build a plan and
+save it as plans/viewer.md that creates a plan to implement an Autodesk viewer implementation
+to view the selected file. To create a viewable you will need to trigger a job with the Model
+Derivative service from the Autodesk APS APIs. When the viewable file is ready we will load
+it in the viewer framework. There is information in the documentation about generating
+viewables here: https://aps.autodesk.com/en/docs/model-derivative/v2/developers_guide/overview/
+...after the viewable is generated the interaction with the viewer is described here:
+https://aps.autodesk.com/en/docs/viewer/v7/developers_guide/overview/. A reference example
+of how to implement this within a react application can be found here:
+/Users/rainsbp/_local_rainsbp/webstorm/fusion-automation-demo/client/src/components/views/ForgeViewer.
+Use all this information to build an implementation plan.
+```
+Researched Model Derivative API v2 and APS Viewer v7 docs. Read reference ForgeViewer implementation. Created `plans/viewer.md` covering: translation state machine (`idle → submitting → polling → ready | failed`), CDN script loading singleton, `useViewerTranslation` hook, `useApsViewer` hook, `ApsViewer` component, and `ViewTab` rewrite.
+
+---
+
+```
+are there any open questions in that plan? If so ask me 1 by 1 and update the plan accordingly
+```
+Identified 3 key decisions and asked them one at a time:
+1. **Tab switching while polling** → *Keep polling in background*
+2. **Multiple viewable selection** → *Auto-load first geometry*
+3. **Retry on failure** → *Re-check manifest first*
+
+Updated `viewer.md` to reflect all three answers.
+
+---
+
+```
+implement the plan using as many agents as is feasible for the task
+```
+Launched 3 parallel agents:
+- **Agent 1**: Created `modelDerivativeService.ts` and `useViewerTranslation.ts`
+- **Agent 2**: Created `loadViewerScripts.ts`, `autodesk-viewer.d.ts`, `useApsViewer.ts`, and `ApsViewer.tsx`
+- **Agent 3**: Rewrote `ViewTab.tsx` and updated `DetailPanel.tsx`
+
+TypeScript compiled clean.
+
+---
+
+```
+The current implementation is failing. First you should only trigger the translation job if
+the user clicks the view tab. Do not preemptively start translations. Additionally you are
+requesting the manifest before the job has been submitted. You need to trigger a translation
+job, poll for when it is complete, and then load the viewable once the lmv file is ready.
+Look very closely at the details of this implementation for guidance:
+/Users/rainsbp/_local_rainsbp/webstorm/fusion-automation-demo/client/src/components/views/ForgeViewer
+```
+Fixed two bugs: (1) `DetailPanel.tsx` was always-mounting `ViewTab`, causing preemptive translation — changed to `{activeTab === 'view' && <ViewTab ...>}`. (2) `useViewerTranslation` was checking the manifest before submitting a job — rewrote to always POST job first, then immediately start polling.
+
+---
+
+```
+when you are submitting the job, you are using the wrong ID. The translation service is
+looking for the Design ID / version ID. The API you are using returns the ID of the design
+item which is effectively the 'lineage id' of the item. To get the appropriate version id of
+the design item you might have to first use this API:
+https://aps.autodesk.com/en/docs/data/v2/reference/http/ the ID you are currently getting
+corresponds to an Item lineage ID. From there you want to get the latest version object and
+use the latest version of the design item ID in the request to the model derivative service
+API. Build a new plan for this change called 'use_data_management_api.md' and then ask me
+any important questions 1 by 1 and update the plan accordingly
+```
+Read relevant source files to understand the existing data flow. Created `plans/use_data_management_api.md` covering: DM API tip endpoint, `dmProjectId` propagation through `NavNode`, new `dataManagementService.ts`, and updated hook signature. Asked one clarifying question: **Loading state for DM API call** → *Fold into existing `submitting` spinner*. Updated plan accordingly.
+
+---
+
+```
+after the job is completed there seems to be some issue with loading the viewable. Here is
+another file that may be useful:
+/Users/rainsbp/_local_rainsbp/webstorm/fusion-automation-demo/client/src/utils/forge/getForgeViewable.js
+use this and the documentation of the viewer API to update your plan and implement changes
+to properly initialize the viewer once the translation job is complete.
+```
+Diagnosed two bugs from reading the reference files: (1) Wrong URN — we were encoding the version `data.id` ourselves, but the DM API version object's `data.relationships.derivatives.data.id` is the already-encoded derivative URN that Model Derivative expects. (2) Race condition in `useApsViewer` — `viewerRef` is a ref (not state), so Effect 3 (document load) fires when `isReady` becomes true but finds the viewer uninitialized, returns early, and never retries. Fixed by adding `viewerInitialized` boolean state set in the Initializer callback, included in Effect 3's dependency array. Updated `dataManagementService.ts`, `useViewerTranslation.ts`, and `useApsViewer.ts`.
+
+---
+
+```
+it seems that you are polling the manifest? Shouldn't you be polling the job for completion
+status or is polling the manifest the correct way?
+```
+Confirmed that polling the manifest IS the correct approach for APS Model Derivative API v2 — there is no separate job status endpoint. The manifest `status` field (`pending`, `inprogress`, `success`, `failed`, `timeout`) serves as the job status.
+
+---
+
+```
+thanks! The viewer is working!
+```
+Confirmed the viewer is working end to end after both fixes: correct derivative URN from `relationships.derivatives.data.id` and race condition resolved with `viewerInitialized` state.
+
+---
+
+```
+update the promt_history.md file with all the new prompts I have typed in the current
+session. Follow the same format as the current doc.
+```
+Updated this file (`prompt_history.md`) with all prompts from this session.
+
+---
+
+*Generated: 2026-03-19*

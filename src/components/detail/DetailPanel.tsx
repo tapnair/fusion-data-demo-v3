@@ -8,10 +8,11 @@ import { ProjectDetail } from './ProjectDetail'
 import { FolderDetail } from './FolderDetail'
 import { ItemDetail } from './ItemDetail'
 import { UsersTab } from './tabs/UsersTab'
+import { ContentsTab } from './tabs/ContentsTab'
 import { BomTab } from './tabs/bom/BomTab'
 import { ViewTab } from './tabs/ViewTab'
 
-type TabKey = 'details' | 'users' | 'bom' | 'view'
+type TabKey = 'details' | 'users' | 'contents' | 'bom' | 'view'
 
 interface TabDef {
   key: TabKey
@@ -22,6 +23,9 @@ function getAvailableTabs(type: string | undefined, itemSubtype: string | null):
   const tabs: TabDef[] = [{ key: 'details', label: 'Details' }]
   if (type === 'project' || type === 'folder') {
     tabs.push({ key: 'users', label: 'Users' })
+  }
+  if (type === 'project' || type === 'folder') {
+    tabs.push({ key: 'contents', label: 'Contents' })
   }
   if (type === 'item' && itemSubtype === 'DesignItem') {
     tabs.push({ key: 'bom', label: 'BOM' })
@@ -116,12 +120,16 @@ export function DetailPanel() {
         {activeTab === 'users' && <UsersTab />}
       </Box>
 
+      <Box role="tabpanel" hidden={activeTab !== 'contents'} sx={{ flex: 1, overflow: 'auto' }}>
+        {activeTab === 'contents' && <ContentsTab node={selectedNode} />}
+      </Box>
+
       <Box role="tabpanel" hidden={activeTab !== 'bom'} sx={{ flex: 1, overflow: 'auto' }}>
         {activeTab === 'bom' && <BomTab node={selectedNode} />}
       </Box>
 
-      <Box role="tabpanel" hidden={activeTab !== 'view'} sx={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 'view' && <ViewTab />}
+      <Box role="tabpanel" hidden={activeTab !== 'view'} sx={{ flex: 1, overflow: 'hidden' }}>
+        {activeTab === 'view' && <ViewTab node={selectedNode!} />}
       </Box>
     </Box>
   )

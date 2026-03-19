@@ -6,7 +6,8 @@ export interface NavNode {
   type: NavNodeType
   entityId: string     // raw API entity ID
   hubId?: string       // propagated from parent for API calls
-  projectId?: string   // propagated from parent for API calls
+  projectId?: string   // propagated from parent for API calls (MFG project UUID)
+  dmProjectId?: string // propagated from parent for DM API calls (b.xxx format)
   parentFolderId?: string
   hasChildren: boolean
   isLoaded: boolean

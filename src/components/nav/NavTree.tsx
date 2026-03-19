@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView'
 import { Box, Typography, CircularProgress } from '@mui/material'
 import { useHubs } from '../../hooks/useHubs'
@@ -61,6 +61,22 @@ function renderNodes(
   })
 }
 
+function findNodeById(
+  nodes: NavNode[],
+  cache: Map<string, NavNode[]>,
+  nodeId: string,
+): NavNode | undefined {
+  for (const n of nodes) {
+    if (n.id === nodeId) return n
+    const children = cache.get(n.id)
+    if (children) {
+      const found = findNodeById(children, cache, nodeId)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
 function hubVersionAtLeast2(version?: string): boolean {
   if (!version) return false
   const major = parseInt(version.split('.')[0], 10)
@@ -79,8 +95,11 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     nodeChildrenCache,
     loadingNodes,
     setSelectedNode,
+    selectedNode,
   } = useNavContext()
   const { loadChildren } = useNavLoader()
+
+  const prevExpandedRef = useRef<string[]>([])
 
   // Build root hub nodes from useHubs result
   const visibleHubs = filterV2Hubs ? hubs.filter(h => hubVersionAtLeast2(h.hubDataVersion)) : hubs
@@ -101,20 +120,7 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
       const newlyExpanded = nodeIds.filter(id => !expandedItems.includes(id))
 
       newlyExpanded.forEach(nodeId => {
-        // Find the NavNode for this id — search hubs + cache recursively
-        const findNode = (nodes: NavNode[]): NavNode | undefined => {
-          for (const n of nodes) {
-            if (n.id === nodeId) return n
-            const children = nodeChildrenCache.get(n.id)
-            if (children) {
-              const found = findNode(children)
-              if (found) return found
-            }
-          }
-          return undefined
-        }
-
-        const node = findNode(hubNodes)
+        const node = findNodeById(hubNodes, nodeChildrenCache, nodeId)
         if (node && node.type !== 'load-more' && !nodeChildrenCache.has(node.id)) {
           loadChildren(node)
         }
@@ -130,20 +136,7 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
       // Skip placeholder nodes
       if (nodeId.startsWith('__ph:') || nodeId.startsWith('__loading:')) return
 
-      // Find the NavNode — search hubs + cache recursively
-      const findNode = (nodes: NavNode[]): NavNode | undefined => {
-        for (const n of nodes) {
-          if (n.id === nodeId) return n
-          const children = nodeChildrenCache.get(n.id)
-          if (children) {
-            const found = findNode(children)
-            if (found) return found
-          }
-        }
-        return undefined
-      }
-
-      const node = findNode(hubNodes)
+      const node = findNodeById(hubNodes, nodeChildrenCache, nodeId)
       if (!node) return
 
       if (node.type === 'load-more') {
@@ -156,6 +149,27 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     },
     [hubNodes, nodeChildrenCache, setSelectedNode, loadChildren],
   )
+
+  useEffect(() => {
+    if (!selectedNode) return
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`nav-tree-${selectedNode.id}`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+  }, [selectedNode?.id, nodeChildrenCache])
+
+  useEffect(() => {
+    const prev = prevExpandedRef.current
+    const newIds = expandedItems.filter(id => !prev.includes(id))
+    prevExpandedRef.current = expandedItems
+    newIds.forEach(nodeId => {
+      if (nodeId.startsWith('__')) return
+      if (nodeChildrenCache.has(nodeId) || loadingNodes.has(nodeId)) return
+      const node = findNodeById(hubNodes, nodeChildrenCache, nodeId)
+      if (node?.hasChildren) loadChildren(node)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedItems])
 
   if (hubsLoading) {
     return (
@@ -193,6 +207,8 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
 
   return (
     <SimpleTreeView
+      id="nav-tree"
+      selectedItems={selectedNode?.id ?? null}
       expandedItems={expandedItems}
       onExpandedItemsChange={handleExpandedItemsChange}
       onItemSelectionToggle={handleItemSelectionToggle}
