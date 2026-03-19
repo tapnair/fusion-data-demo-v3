@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Box, Typography, IconButton, CircularProgress, Button, Skeleton, Popover } from '@mui/material'
+import { Box, Typography, IconButton, CircularProgress, Button, Skeleton, Popover, TextField } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import BrokenImageIcon from '@mui/icons-material/BrokenImage'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import LockIcon from '@mui/icons-material/Lock'
 import { useBomThumbnail, WORKING_STATES } from '../../../../hooks/useBomThumbnail'
 import { useBomPhysicalProperties, PHYSICAL_PROPS_WORKING_STATES } from '../../../../hooks/useBomPhysicalProperties'
 import type { BomRow } from '../../../../types/bom.types'
@@ -22,6 +23,13 @@ export interface BomCellContext {
   sigFigs: number
   staleBasePropsKeys: Set<string>
   clearStaleKey: (key: string) => void
+  setBaseProperty: (
+    componentId: string,
+    componentState: string | null,
+    definitionId: string,
+    specification: string | null,
+    rawValue: string
+  ) => Promise<void>
 }
 
 const UNIT_ABBREVIATIONS: Record<string, string> = {
@@ -301,17 +309,23 @@ function BomNameCell({ row, ctx }: { row: BomRow; ctx: BomCellContext }) {
 
 function BomBasePropCellInner({
   row,
-  definitionId,
+  definition,
   ctx,
 }: {
   row: BomRow
-  definitionId: string
+  definition: PropertyDefinition
   ctx: BomCellContext
 }) {
   const componentKey = `${row.componentId}:${row.componentState ?? 'root'}`
   const isStale = ctx.staleBasePropsKeys.has(componentKey)
   const { loading, error, valueMap } = useBomBaseProperties(row.componentId, row.componentState)
   const client = useApolloClient()
+
+  const [editing, setEditing] = React.useState(false)
+  const [editValue, setEditValue] = React.useState('')
+  const [validationError, setValidationError] = React.useState<string | null>(null)
+  const [saving, setSaving] = React.useState(false)
+  const [optimisticValue, setOptimisticValue] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!isStale) return
@@ -333,25 +347,113 @@ function BomBasePropCellInner({
     return React.createElement(ErrorOutlineIcon, { fontSize: 'small', sx: { color: 'text.disabled' } })
   }
 
-  const value = valueMap[definitionId] ?? null
-  if (!value) return null
-  return React.createElement(Typography, { variant: 'body2', noWrap: true }, value)
+  const displayValue = optimisticValue ?? valueMap[definition.id] ?? null
+  const isReadOnly = definition.isReadOnly === true
+
+  // Read-only: show value + lock icon
+  if (isReadOnly) {
+    return React.createElement(
+      Box,
+      { sx: { display: 'flex', alignItems: 'center', gap: 0.5 } },
+      displayValue
+        ? React.createElement(Typography, { variant: 'body2', noWrap: true }, displayValue)
+        : null,
+      React.createElement(LockIcon, { sx: { fontSize: 12, color: 'text.disabled', flexShrink: 0 } })
+    )
+  }
+
+  // Saving state: greyed out value + spinner
+  if (saving) {
+    return React.createElement(
+      Box,
+      { sx: { display: 'flex', alignItems: 'center', gap: 0.5, pointerEvents: 'none' } },
+      React.createElement(Typography, { variant: 'body2', noWrap: true, sx: { color: 'text.disabled' } }, displayValue ?? ''),
+      React.createElement(CircularProgress, { size: 10, sx: { color: 'text.disabled', flexShrink: 0 } })
+    )
+  }
+
+  // Edit mode: TextField
+  if (editing) {
+    const handleCommit = async () => {
+      const trimmed = editValue.trim()
+      // Basic validation: for numeric specs reject empty → treat as cancel
+      if (trimmed === '') {
+        setEditing(false)
+        setValidationError(null)
+        return
+      }
+      setEditing(false)
+      setValidationError(null)
+      setOptimisticValue(trimmed)
+      setSaving(true)
+      try {
+        await ctx.setBaseProperty(row.componentId, row.componentState, definition.id, definition.specification, trimmed)
+      } catch (err: any) {
+        setOptimisticValue(null)
+        setValidationError(err?.message ?? 'Save failed')
+      } finally {
+        setSaving(false)
+      }
+    }
+
+    return React.createElement(
+      Box,
+      { sx: { width: '100%' } },
+      React.createElement(TextField, {
+        size: 'small',
+        variant: 'standard',
+        value: editValue,
+        autoFocus: true,
+        error: !!validationError,
+        helperText: validationError ?? undefined,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value),
+        onBlur: handleCommit,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter') { e.preventDefault(); handleCommit() }
+          if (e.key === 'Escape') { e.stopPropagation(); setEditing(false); setValidationError(null) }
+        },
+        sx: { width: '100%' },
+        inputProps: { style: { fontSize: '0.875rem' } },
+      })
+    )
+  }
+
+  // Display mode: clickable to enter edit mode
+  return React.createElement(
+    Box,
+    {
+      onClick: () => {
+        setEditValue(displayValue ?? '')
+        setValidationError(null)
+        setEditing(true)
+      },
+      sx: {
+        cursor: 'text',
+        width: '100%',
+        minHeight: 24,
+        '&:hover': { outline: '1px solid', outlineColor: 'divider', borderRadius: 0.5 },
+      },
+    },
+    displayValue
+      ? React.createElement(Typography, { variant: 'body2', noWrap: true }, displayValue)
+      : null
+  )
 }
 
 function BomBasePropCell({
   row,
-  definitionId,
+  definition,
   ctx,
 }: {
   row: BomRow
-  definitionId: string
+  definition: PropertyDefinition
   ctx: BomCellContext
 }) {
   if (row.id.startsWith('load-more:')) return null
   return React.createElement(
     Box,
     { sx: { display: 'flex', alignItems: 'center', height: '100%' } },
-    React.createElement(BomBasePropCellInner, { row, definitionId, ctx })
+    React.createElement(BomBasePropCellInner, { row, definition, ctx })
   )
 }
 
@@ -470,6 +572,6 @@ export function makeBasePropertyColumn(def: PropertyDefinition): BomColumnDef {
     fetchOnDemand: true,
     getValue: () => null,
     renderCell: (row, ctx) =>
-      React.createElement(BomBasePropCell, { row, definitionId: def.id, ctx }),
+      React.createElement(BomBasePropCell, { row, definition: def, ctx }),
   }
 }
