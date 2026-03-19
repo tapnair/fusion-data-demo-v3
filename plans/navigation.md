@@ -148,10 +148,80 @@ When a user opens a shared URL:
 
 1. The app boots, authenticates (OAuth redirect preserved via the SPA 404 shim already in place)
 2. `useNavRouting` runs on mount, constructs a stub `NavNode` from URL params, calls `setSelectedNode`
-3. `DetailPanel` reads `selectedNode` and renders the appropriate detail component — which fires its own Apollo query and displays the resource
-4. The left-nav tree loads hubs as normal. The selected node's ID is passed to `selectedItems` on `SimpleTreeView` (already done). If the user later expands the tree to the selected node's location, it will highlight automatically.
+3. `DetailPanel` reads `selectedNode` and renders the appropriate detail component — which fires its own Apollo query and displays the resource immediately
+4. `useDeepLinkExpansion` (see below) runs in parallel to progressively expand the left-nav tree to the selected node's location
 
-**No full ancestor chain expansion on deep link.** The detail panel is self-sufficient — it doesn't need the tree to be expanded to show data. Tree expansion on deep link is deferred to a future phase.
+---
+
+## Ancestor Path Resolution (`useDeepLinkExpansion`)
+
+A dedicated hook resolves the ancestor chain of the deep-linked node and progressively expands the tree, so the selected node appears highlighted in its proper location.
+
+### The problem
+
+The tree is lazy-loaded top-down: hub → projects → folders/items. To expand the tree to a folder or item, we need to know every ancestor ID so we can expand each level in sequence. The URL only contains the node's own ID plus one context ID (`projectId` for folders, `hubId` for items) — not the full path.
+
+### Algorithm
+
+**Step 1 — Resolve the hub ID** (needed to start tree expansion from the top):
+
+| URL type | How to get `hubId` |
+|----------|--------------------|
+| `/hub/:hubId` | Already in the URL path |
+| `/project/:projectId` | Query `GET_PROJECT_DETAIL(projectId)` → `project.hub.id` |
+| `/folder/:folderId?projectId=` | Same: query `GET_PROJECT_DETAIL(projectId)` → `project.hub.id` |
+| `/item/:itemId?hubId=` | Already in the URL query param |
+
+**Step 2 — Resolve the folder ancestry chain** (folders/items only):
+
+Folders and items may be nested inside one or more sub-folders. Walk up the `parentFolder` chain by repeatedly calling `GET_FOLDER_DETAIL` until reaching a folder with no `parentFolder` (root-level folder directly under the project):
+
+```
+GET_FOLDER_DETAIL(targetFolderId)  → parentFolder.id = F1
+GET_FOLDER_DETAIL(F1)              → parentFolder.id = null  ← root folder
+```
+
+Result: ancestor path = `[hubId, projectId, F1, targetFolderId]`
+
+For items, the immediate parent folder ID comes from `GET_ITEM_DETAIL` (which `DetailPanel` is already fetching). Once that resolves, apply the same walk-up from `item.parentFolder.id`.
+
+**Step 3 — Progressive tree expansion**
+
+With the full ancestor chain known, expand each level in sequence by adding node IDs to `expandedItems`. The existing `useEffect` in `NavTree` (Effect 2) watches `expandedItems` and calls `loadChildren` for any newly-expanded uncached node. Once children load (`nodeChildrenCache` updates), the next ancestor is added, and so on until the target node's parent is expanded and the target appears in the tree — at which point the scroll effect (Effect 1) fires automatically.
+
+```
+expandedItems ← ['hub:H1']
+  → NavTree Effect 2 loads hub children (projects)
+  → nodeChildrenCache updated → hook sees project in cache
+expandedItems ← ['hub:H1', 'project:P1']
+  → NavTree Effect 2 loads project children (root folders+items)
+  → nodeChildrenCache updated → hook sees F1 in cache
+expandedItems ← ['hub:H1', 'project:P1', 'folder:F1']
+  → NavTree Effect 2 loads F1's children
+  → target folder now in cache → selectedItems highlights it
+  → scroll effect fires
+```
+
+### `useDeepLinkExpansion` hook
+
+```ts
+// src/hooks/useDeepLinkExpansion.ts
+
+export function useDeepLinkExpansion(node: NavNode | null) {
+  // Only runs when the node was created from a URL (isLoaded: false, label: '')
+  // 1. Resolves hubId via GET_PROJECT_DETAIL if needed
+  // 2. Walks up parentFolder chain via GET_FOLDER_DETAIL to build ancestor array
+  // 3. Uses a useEffect watching nodeChildrenCache to expand one level at a time
+  // 4. Stops when the target node appears in its parent's cache entry
+  // 5. No-ops if the node is already visible in the tree cache
+}
+```
+
+**Key implementation detail:** The hook tracks a `pendingAncestors: string[]` state (the ordered list of node IDs to expand, from hub down to immediate parent). A `useEffect` watching `nodeChildrenCache` pops the next ancestor off the list and adds it to `expandedItems` once the previous level's children are loaded.
+
+### Caching
+
+All `GET_PROJECT_DETAIL` and `GET_FOLDER_DETAIL` calls during ancestor resolution use `fetchPolicy: 'cache-first'` — if the detail panel has already fetched the same data, no extra network requests fire.
 
 ---
 
@@ -171,6 +241,9 @@ When a user opens a shared URL:
 
 #### `src/hooks/useNavRouting.ts`
 The URL ↔ state bridge. Exports `useNavRouting(activeTab, setActiveTab)` — or alternatively returns `{ initialTab }` and is driven externally. (Exact signature decided in implementation.)
+
+#### `src/hooks/useDeepLinkExpansion.ts`
+Ancestor chain resolution and progressive tree expansion for deep links. Called from `DetailPanel` with the current `selectedNode`. No-ops when the node was selected via normal tree navigation (already in cache).
 
 ### Modified Files
 
@@ -206,30 +279,43 @@ The URL ↔ state bridge. Exports `useNavRouting(activeTab, setActiveTab)` — o
 
 ## Implementation Phases
 
-### Phase 1 — `useNavRouting` hook
+### Phase 1 — Routes in `App.tsx`
+Add 4 new sibling routes (`/dashboard/hub/:hubId`, etc.) all rendering the same shell subtree.
+
+### Phase 2 — `useNavRouting` hook
 Create `src/hooks/useNavRouting.ts`:
-- `useSearchParams` to read URL on mount → construct stub NavNode → call `setSelectedNode`
-- `useEffect` watching selectedNode + activeTab → call `navigate` with built URL
-- Export `initialTab` for DetailPanel to seed its state
+- `useParams` + `useSearchParams` to read URL on mount → construct stub NavNode → call `setSelectedNode`
+- `useEffect` watching `selectedNode` + `activeTab` → call `navigate` with `buildUrl()`
+- All navigations use `replace: false` (push)
+- Guard: skip navigation on initial mount hydration to avoid double history entry
+- Export `initialTab` for `DetailPanel` to seed its state
 
-### Phase 2 — Wire into DetailPanel
+### Phase 3 — Wire into DetailPanel
 - Import and call `useNavRouting`
-- Initialise `activeTab` state from `initialTab`
-- Call `useNavRouting`'s URL-sync effect by passing `activeTab`
+- Initialise `activeTab` state from `initialTab` instead of hardcoded `'details'`
+- Add call to `useDeepLinkExpansion(selectedNode)`
 
-### Phase 3 — Verify
-- Select node in tree → URL updates immediately, reflects node type + id + context IDs
-- Switch tabs → URL `tab` param updates; back button does not create extra history entries
-- Copy URL, paste in new tab → correct detail panel loads, correct tab is active
-- Item not found (API error) → detail shows error, URL unchanged
+### Phase 4 — `useDeepLinkExpansion` hook
+Create `src/hooks/useDeepLinkExpansion.ts`:
+- Detect deep-link stubs (node with `isLoaded: false`, `label: ''`)
+- Query `GET_PROJECT_DETAIL` to resolve `hubId` where needed
+- Walk up `parentFolder` chain via `GET_FOLDER_DETAIL` to build ancestor array
+- `useEffect` watching `nodeChildrenCache` to expand one level at a time
+
+### Phase 5 — Verify
+- Select node in tree → URL updates, reflects path + context params
+- Switch tabs → URL updates; back button restores previous tab
+- Copy URL, paste in new tab → detail panel loads immediately, tree expands progressively
+- Deep link to nested folder → tree expands hub → project → parent folders → target highlighted
+- Deep link to item → item detail loads immediately, tree expands to item location
+- Item not found (API 403/404) → detail shows error, URL unchanged
 - No selection → URL is clean `/dashboard`
-- GitHub Pages deploy → verify URL params survive the 404 → redirect → restore chain
+- GitHub Pages → verify URL path segments survive the 404 → redirect → restore chain
 
 ---
 
 ## Non-goals (this phase)
 
-- No ancestor chain expansion on deep link (tree doesn't auto-expand to the selected node's location)
-- No encoding of tree expansion state in the URL (which nodes are expanded)
+- No encoding of tree expansion state in the URL (which nodes are expanded beyond the selected path)
 - No encoding of drawer open/closed state in the URL (remains localStorage)
-- No tab history (back button within a node navigates to a previous node, not a previous tab)
+- No deep link support for `hub` nodes (hub detail is minimal; hub expansion is trivial and handled naturally)

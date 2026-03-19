@@ -3,6 +3,8 @@ import { Box, Tabs, Tab, Typography } from '@mui/material'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import { useNavContext } from '../../context/NavContext'
 import { useAuth } from '../../context/AuthContext'
+import { useNavRouting, getInitialTabFromUrl } from '../../hooks/useNavRouting'
+import { useDeepLinkExpansion } from '../../hooks/useDeepLinkExpansion'
 import { HubDetail } from './HubDetail'
 import { ProjectDetail } from './ProjectDetail'
 import { FolderDetail } from './FolderDetail'
@@ -39,8 +41,11 @@ function getAvailableTabs(type: string | undefined, itemSubtype: string | null):
 export function DetailPanel() {
   const { selectedNode } = useNavContext()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<TabKey>('details')
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTabFromUrl)
   const [itemSubtype, setItemSubtype] = useState<string | null>(null)
+
+  useNavRouting(activeTab, setActiveTab)
+  useDeepLinkExpansion(selectedNode)
 
   // When node changes: reset subtype, keep tab if still valid else fall back to details
   useEffect(() => {

@@ -70,7 +70,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/callback" element={<Callback />} />
               <Route
-                path="/dashboard"
+                path="/dashboard/*"
                 element={
                   <ProtectedRoute>
                     <NavProvider>
