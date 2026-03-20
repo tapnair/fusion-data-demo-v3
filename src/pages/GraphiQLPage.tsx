@@ -98,7 +98,7 @@ export default function GraphiQLPage() {
         onEditQuery={setQuery}
         initialVariables={variables}
         onEditVariables={setVariables}
-        storage={null}
+        storage={undefined}
       />
     </Box>
   )
