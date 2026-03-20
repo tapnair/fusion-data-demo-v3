@@ -26,7 +26,7 @@ Each selected node shows relevant tabs:
 | Tab | Available for |
 |---|---|
 | Details | All node types |
-| Users | Projects, Folders |
+| Users | Hubs, Projects, Folders |
 | Contents | Projects, Folders |
 | BOM | Design Items |
 | View | Design Items, Drawing Items |
@@ -67,6 +67,20 @@ Each selected node shows relevant tabs:
 - Clicking a component in the 3D scene opens a **properties flyout panel** on the right that pushes (not overlays) the viewer canvas
 - The flyout shows both the selected body's properties and its parent component's properties, grouped into collapsible accordion sections by category
 - A "Show all" toggle reveals hidden/internal properties
+
+### Query Editor
+- Embedded GraphiQL IDE connected directly to the Manufacturing Data Model API
+- Authenticated with the current user's token — no separate credentials needed
+- When a node is selected in the left nav, the editor pre-populates with a relevant example query and fills the variables panel with real IDs for the selected item
+- Selecting a node of a different type replaces the editor content; selecting a node of the same type preserves current edits
+- "Load in Editor" from the Query Log transfers any logged query + variables directly into the editor
+
+### Query Log
+- Captures every GraphQL operation executed by the app via a custom Apollo Link
+- Compact table rows show: #, operation type, operation name, "Load in Editor" button, timestamp, and duration
+- Click any row to expand it and view the full GraphQL query, variables, and response (or errors) in syntax-highlighted code blocks
+- Introspection queries (sent by GraphiQL for schema autocomplete) are shown at reduced opacity to distinguish them from application queries
+- "Clear Log" button in the toolbar; log is capped at 200 entries
 
 ### Weave 3 Design System
 - 3 color schemes: **Light Gray** (default), **Dark Gray**, **Dark Blue**
@@ -163,17 +177,19 @@ fusion-data-demo-v3/
 │   │   ├── layout/         # AppShell, Header, NavDrawer
 │   │   ├── nav/            # NavTree, NavTreeItem
 │   │   └── viewer/         # ApsViewer, ViewerPropertiesPanel
-│   ├── context/            # AuthContext, NavContext
+│   ├── context/            # AuthContext, NavContext, QueryLogContext
 │   ├── graphql/
-│   │   ├── mutations/      # baseProperties (setProperties)
+│   │   ├── mutations/      # baseProperties (setProperties), members
 │   │   └── queries/        # hubs, projects, folders, items, bom, thumbnail,
-│   │                       # physicalProperties, baseProperties
+│   │                       # physicalProperties, baseProperties, members
 │   ├── hooks/              # useHubs, useNavLoader, useBomLoader, useBomThumbnail,
 │   │                       # useBomPhysicalProperties, useBomBaseProperties,
 │   │                       # useHubBasePropertyDefinitions, useApsViewer,
 │   │                       # useViewerSelection, useViewerTranslation,
-│   │                       # useFolderContents, useNavRouting, useDeepLinkExpansion
-│   ├── pages/              # Home, Dashboard, Callback, DebugPage
+│   │                       # useFolderContents, useNavRouting, useDeepLinkExpansion,
+│   │                       # useMembers, useGraphiQLDefaultQuery
+│   ├── pages/              # Home, Dashboard, Callback, DebugPage,
+│   │                       # GraphiQLPage, QueryLogPage
 │   ├── services/
 │   │   ├── auth/           # authService, pkceHelper, tokenManager, userInfoService
 │   │   └── viewer/         # modelDerivativeService, dataManagementService, loadViewerScripts
@@ -199,6 +215,7 @@ fusion-data-demo-v3/
 | MUI X Tree View | community | Left navigation tree |
 | Apollo Client | v4 | GraphQL client with `InMemoryCache` |
 | React Router | 7 | Client-side routing |
+| GraphiQL | v5 | Embedded GraphQL IDE |
 | Autodesk Viewer | v7 | 3D model viewer (loaded from CDN) |
 | Weave 3 | — | Autodesk design system (2200+ tokens) |
 
@@ -241,6 +258,8 @@ Detailed implementation plans are in the [`plans/`](./plans/) directory:
 - `user_info_plan.md` — User avatar and name in header
 - `make_pages_plan.md` — GitHub Pages deployment
 - `use_data_management_api.md` — Data Management API for viewer URN resolution
+- `user_management.md` — Users tab with member management
+- `graphiql_and_querylog.md` — Query Editor and Query Log pages
 
 ---
 

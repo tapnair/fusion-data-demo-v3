@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Box, Snackbar, Alert } from '@mui/material'
+import type { SxProps, Theme } from '@mui/material/styles'
 import { Header } from './Header'
 import { NavDrawer } from './NavDrawer'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
@@ -13,9 +14,11 @@ interface AppShellProps {
   onColorSchemeChange: (s: WeaveColorScheme) => void
   onDensityChange: (d: WeaveDensity) => void
   children: React.ReactNode
+  contentSx?: SxProps<Theme>
+  hideDrawer?: boolean
 }
 
-export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityChange, children }: AppShellProps) {
+export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityChange, children, contentSx, hideDrawer }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
     const stored = localStorage.getItem(DRAWER_STORAGE_KEY)
     return stored !== null ? stored === 'true' : true  // default open
@@ -49,12 +52,12 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
         density={density}
         onColorSchemeChange={onColorSchemeChange}
         onDensityChange={onDensityChange}
-        onDrawerToggle={handleDrawerToggle}
+        onDrawerToggle={hideDrawer ? undefined : handleDrawerToggle}
         filterV2Hubs={filterV2Hubs}
         onFilterV2HubsChange={handleFilterV2HubsChange}
       />
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <NavDrawer open={drawerOpen} filterV2Hubs={filterV2Hubs} />
+        {!hideDrawer && <NavDrawer open={drawerOpen} filterV2Hubs={filterV2Hubs} />}
         <Box
           component="main"
           sx={{
@@ -63,6 +66,7 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
             p: 3,
             display: 'flex',
             flexDirection: 'column',
+            ...contentSx,
           }}
         >
           {children}

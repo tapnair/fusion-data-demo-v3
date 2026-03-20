@@ -12,6 +12,8 @@ import { createWeaveTheme } from './theme/createWeaveTheme'
 import type { WeaveColorScheme, WeaveDensity } from './theme/types'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NavProvider } from './context/NavContext'
+import { QueryLogProvider } from './context/QueryLogContext'
+import { useQueryLog } from './context/QueryLogContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './components/layout/AppShell'
 import { DetailPanel } from './components/detail/DetailPanel'
@@ -19,12 +21,15 @@ import { createApolloClient } from './apollo/client'
 import Home from './pages/Home'
 import Callback from './pages/Callback'
 import DebugPage from './pages/DebugPage'
+import GraphiQLPage from './pages/GraphiQLPage'
+import QueryLogPage from './pages/QueryLogPage'
 import './theme/fonts.css'
 
 /** Wraps children with ApolloProvider, creating the client from AuthContext. */
 function ApolloWrapper({ children }: { children: React.ReactNode }) {
   const { getAccessToken } = useAuth()
-  const apolloClient = useMemo(() => createApolloClient(getAccessToken), [getAccessToken])
+  const { addEntry } = useQueryLog()
+  const apolloClient = useMemo(() => createApolloClient(getAccessToken, addEntry), [getAccessToken, addEntry])
   return <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
 }
 
@@ -64,39 +69,74 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
-          <ApolloWrapper>
-          <Router basename={import.meta.env.PROD ? '/fusion-data-demo-v3' : '/'}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/callback" element={<Callback />} />
-              <Route
-                path="/dashboard/*"
-                element={
-                  <ProtectedRoute>
-                    <NavProvider>
-                      <AppShell
-                        colorScheme={colorScheme}
-                        density={density}
-                        onColorSchemeChange={setColorScheme}
-                        onDensityChange={setDensity}
-                      >
-                        <DetailPanel />
-                      </AppShell>
-                    </NavProvider>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/debug"
-                element={
-                  <ProtectedRoute>
-                    <DebugPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Router>
-          </ApolloWrapper>
+          <QueryLogProvider>
+            <ApolloWrapper>
+              <Router basename={import.meta.env.PROD ? '/fusion-data-demo-v3' : '/'}>
+                <NavProvider>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/callback" element={<Callback />} />
+                    <Route
+                      path="/dashboard/*"
+                      element={
+                        <ProtectedRoute>
+                          <AppShell
+                            colorScheme={colorScheme}
+                            density={density}
+                            onColorSchemeChange={setColorScheme}
+                            onDensityChange={setDensity}
+                          >
+                            <DetailPanel />
+                          </AppShell>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/debug"
+                      element={
+                        <ProtectedRoute>
+                          <DebugPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/query-editor"
+                      element={
+                        <ProtectedRoute>
+                          <AppShell
+                            colorScheme={colorScheme}
+                            density={density}
+                            onColorSchemeChange={setColorScheme}
+                            onDensityChange={setDensity}
+                            contentSx={{ p: 0, overflow: 'hidden' }}
+                          >
+                            <GraphiQLPage />
+                          </AppShell>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/query-log"
+                      element={
+                        <ProtectedRoute>
+                          <AppShell
+                            colorScheme={colorScheme}
+                            density={density}
+                            onColorSchemeChange={setColorScheme}
+                            onDensityChange={setDensity}
+                            hideDrawer
+                            contentSx={{ p: 0, overflow: 'hidden' }}
+                          >
+                            <QueryLogPage />
+                          </AppShell>
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </NavProvider>
+              </Router>
+            </ApolloWrapper>
+          </QueryLogProvider>
         </AuthProvider>
       </ThemeProvider>
     </StyledEngineProvider>

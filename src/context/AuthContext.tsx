@@ -3,7 +3,7 @@
  * Provides authentication state and methods throughout the app
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { AuthService } from '../services/auth/authService'
 import { TokenManager } from '../services/auth/tokenManager'
 import { fetchUserInfo } from '../services/auth/userInfoService'
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Get current access token
    * Throws error if not authenticated
    */
-  const getAccessToken = async (): Promise<string> => {
+  const getAccessToken = useCallback(async (): Promise<string> => {
     const token = TokenManager.getToken()
 
     if (!token) {
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return token
-  }
+  }, [])
 
   /**
    * Handle successful authentication (called from callback page)

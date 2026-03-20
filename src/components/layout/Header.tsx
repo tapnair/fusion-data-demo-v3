@@ -24,6 +24,8 @@ import {
 import { Link as RouterLink } from 'react-router-dom'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import BugReportIcon from '@mui/icons-material/BugReport'
+import CodeIcon from '@mui/icons-material/Code'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import SettingsIcon from '@mui/icons-material/Settings'
 import CheckIcon from '@mui/icons-material/Check'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -116,6 +118,22 @@ export function Header({
                   startIcon={<BugReportIcon />}
                 >
                   Debug
+                </Button>
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/query-editor"
+                  startIcon={<CodeIcon />}
+                >
+                  Query Editor
+                </Button>
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/query-log"
+                  startIcon={<ListAltIcon />}
+                >
+                  Query Log
                 </Button>
               </Box>
             )}

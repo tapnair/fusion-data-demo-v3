@@ -24,7 +24,7 @@ interface TabDef {
 
 function getAvailableTabs(type: string | undefined, itemSubtype: string | null): TabDef[] {
   const tabs: TabDef[] = [{ key: 'details', label: 'Details' }]
-  if (type === 'project' || type === 'folder') {
+  if (type === 'hub' || type === 'project' || type === 'folder') {
     tabs.push({ key: 'users', label: 'Users' })
   }
   if (type === 'project' || type === 'folder') {
@@ -126,7 +126,7 @@ export function DetailPanel() {
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'users'} sx={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 'users' && <UsersTab />}
+        {activeTab === 'users' && <UsersTab node={selectedNode} />}
       </Box>
 
       <Box role="tabpanel" hidden={activeTab !== 'contents'} sx={{ flex: 1, overflow: 'auto' }}>
