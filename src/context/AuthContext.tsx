@@ -12,7 +12,7 @@ import { CachePersistor } from 'apollo3-cache-persist'
 import type { NormalizedCacheObject } from '@apollo/client/core'
 import { clearThumbnailCache } from '../services/thumbnailImageCache'
 
-interface AuthContextType {
+export interface AuthContextType {
   isAuthenticated: boolean
   accessToken: string | null
   user: User | null
@@ -25,7 +25,7 @@ interface AuthContextType {
   setPersistor: (p: CachePersistor<NormalizedCacheObject>) => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Create auth service instance with environment variables
 const authService = new AuthService({
