@@ -42,7 +42,7 @@
     "@mui/x-data-grid": "^8.27.3",
     "@mui/x-tree-view": "^8.27.2",
     "apollo3-cache-persist": "^0.15.0",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "graphiql": "^5.2.2",
     "graphql": "^16.13.0",
     "idb": "^8.0.3",
