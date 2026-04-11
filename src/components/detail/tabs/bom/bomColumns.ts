@@ -30,6 +30,7 @@ export interface BomCellContext {
     specification: string | null,
     rawValue: string
   ) => Promise<void>
+  thumbnailGeneration: number
 }
 
 const UNIT_ABBREVIATIONS: Record<string, string> = {
@@ -107,9 +108,9 @@ export interface BomColumnDef {
   fetchOnDemand?: boolean
 }
 
-function BomThumbnailCellInner({ row }: { row: BomRow }) {
+function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thumbnailGeneration: number }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
-  const { loading, error, status, signedUrl } = useBomThumbnail(row.componentId, row.componentState)
+  const { loading, error, status, signedUrl } = useBomThumbnail(row.componentId, row.componentState, thumbnailGeneration)
   const isWorking = status !== null && WORKING_STATES.includes(status)
 
   if (error || status === 'FAILED') {
@@ -161,9 +162,9 @@ function BomThumbnailCellInner({ row }: { row: BomRow }) {
   )
 }
 
-function BomThumbnailCell({ row }: { row: BomRow }) {
+function BomThumbnailCell({ row, thumbnailGeneration }: { row: BomRow; thumbnailGeneration: number }) {
   if (row.id.startsWith('load-more:')) return null
-  return React.createElement(BomThumbnailCellInner, { row })
+  return React.createElement(BomThumbnailCellInner, { row, thumbnailGeneration })
 }
 
 type PhysPropsAccessor = (physProps: any) => { displayValue: string | null; unitName: string | null } | null
@@ -464,7 +465,7 @@ export const BOM_COLUMNS: BomColumnDef[] = [
     width: 72,
     fetchOnDemand: true,
     getValue: () => null,
-    renderCell: (row) => React.createElement(BomThumbnailCell, { row }),
+    renderCell: (row, ctx) => React.createElement(BomThumbnailCell, { row, thumbnailGeneration: ctx.thumbnailGeneration }),
   },
   {
     id: 'name',

@@ -10,8 +10,11 @@ import {
   Divider,
   CircularProgress,
   Typography,
+  IconButton,
+  Tooltip,
 } from '@mui/material'
 import ViewColumnIcon from '@mui/icons-material/ViewColumn'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import { BOM_COLUMNS } from './bomColumns'
 import type { PropertyDefinition } from '../../../../hooks/useHubBasePropertyDefinitions'
 
@@ -32,6 +35,8 @@ interface BomColumnSettingsProps {
   onSigFigsChange: (n: number) => void
   basePropertyDefs?: PropertyDefinition[]
   basePropsLoading?: boolean
+  thumbnailColumnVisible?: boolean
+  onRefreshThumbnails?: () => void
 }
 
 export function BomColumnSettings({
@@ -41,6 +46,8 @@ export function BomColumnSettings({
   onSigFigsChange,
   basePropertyDefs,
   basePropsLoading,
+  thumbnailColumnVisible,
+  onRefreshThumbnails,
 }: BomColumnSettingsProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null)
   const [precisionAnchorEl, setPrecisionAnchorEl] = useState<HTMLElement | null>(null)
@@ -107,6 +114,18 @@ export function BomColumnSettings({
           </MenuItem>
         ))}
       </Menu>
+
+      {thumbnailColumnVisible && onRefreshThumbnails && (
+        <Tooltip title="Re-fetch all thumbnails from API">
+          <IconButton
+            size="small"
+            onClick={onRefreshThumbnails}
+            sx={{ ml: 1, color: 'text.secondary' }}
+          >
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Popover
         id={popoverId}

@@ -3,14 +3,20 @@ import { useSearchParams } from 'react-router-dom'
 import { Box } from '@mui/material'
 import { GraphiQL } from 'graphiql'
 import type { Fetcher } from '@graphiql/toolkit'
-import { buildSchema } from 'graphql'
 import 'graphiql/style.css'
-import schemaSDL from '../../schema.graphql?raw'
 import { useAuth } from '../context/AuthContext'
 import { useNavContext } from '../context/NavContext'
 import { getDefaultsForNode } from '../hooks/useGraphiQLDefaultQuery'
 
-const schema = buildSchema(schemaSDL)
+// No-op storage: disables GraphiQL's localStorage persistence so it never
+// overrides `defaultQuery` when the editor remounts (key bump on "Load in Editor").
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+  clear: () => {},
+  length: 0,
+}
 
 export default function GraphiQLPage() {
   const { getAccessToken } = useAuth()
@@ -93,12 +99,11 @@ export default function GraphiQLPage() {
       <GraphiQL
         key={editorKey}
         fetcher={fetcher}
-        schema={schema}
         defaultQuery={query}
         onEditQuery={setQuery}
         initialVariables={variables}
         onEditVariables={setVariables}
-        storage={undefined}
+        storage={noopStorage}
       />
     </Box>
   )

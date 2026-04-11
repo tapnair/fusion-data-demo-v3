@@ -217,22 +217,18 @@ function useGraphiQLFetcher(): Fetcher {
 }
 ```
 
-#### Schema for autocomplete
+#### Schema / autocomplete — introspection
 
-The Autodesk MFG API may have introspection disabled in production. To ensure
-autocomplete and docs always work, we load the local `schema.graphql` file directly:
+No `schema` prop is passed to `<GraphiQL>`. GraphiQL fires a standard
+`IntrospectionQuery` through the custom fetcher on first mount, which includes the
+Bearer token, so the Autodesk API responds with the full schema. Monaco receives it
+and autocomplete is immediately available.
 
-```typescript
-import schemaSDL from '../../schema.graphql?raw'   // Vite raw import
-import { buildSchema } from 'graphql'
-
-const schema = buildSchema(schemaSDL)
-```
-
-Pass to `<GraphiQL schema={schema} .../>`.
-
-If introspection is available from the server, GraphiQL will use it. The `schema` prop
-serves as a guaranteed fallback.
+> **Why not `schema={buildSchema(schemaSDL)}`?**
+> Passing a `GraphQLSchema` object sets `shouldIntrospect = false` inside GraphiQL's
+> store, preventing introspection and making autocomplete dependent on correctly wiring
+> Monaco's worker stack — unnecessary complexity. The official graphiql-vite example
+> uses only `fetcher`; introspection is automatic.
 
 #### Pre-population from Query Log
 
@@ -241,22 +237,53 @@ When the user clicks "Load in Editor" on a log entry, we navigate to:
 /query-editor?q=<encoded-query>&v=<encoded-variables>
 ```
 
-On mount, `GraphiQLPage` reads these search params via `useSearchParams()` and uses
-them as `defaultQuery` / `defaultVariables` (uncontrolled initialisation — the user
-can then freely edit).
+When the user clicks "Load in Editor" (from either the Query Log or the query log page),
+we navigate to `/query-editor?q=<encoded>&v=<encoded>`. A `useEffect` watching
+`searchParams` fires whenever these params arrive — even when `GraphiQLPage` is already
+mounted — and:
+1. Decodes the query and variables into React state (`setQuery` / `setVariables`).
+2. Increments `editorKey` to force-remount `<GraphiQL>` with the new `defaultQuery` /
+   `initialVariables` values.
+3. Clears the URL params with `setSearchParams({}, { replace: true })`.
 
 ```typescript
-const [searchParams, setSearchParams] = useSearchParams()
-const initialQuery = searchParams.get('q') ? decodeURIComponent(searchParams.get('q')!) : DEFAULT_QUERY
-const initialVars  = searchParams.get('v') ? decodeURIComponent(searchParams.get('v')!) : '{}'
-
-// Clear params from URL after reading (so refreshing doesn't re-load)
 useEffect(() => {
-  if (searchParams.has('q')) {
-    setSearchParams({}, { replace: true })
-  }
-}, [])
+  const q = searchParams.get('q')
+  const v = searchParams.get('v')
+  if (!q && !v) return
+  const newQuery = q ? decodeURIComponent(q) : query
+  const newVars  = v ? decodeURIComponent(v) : variables
+  setQuery(newQuery)
+  setVariables(newVars)
+  setEditorKey(k => k + 1)
+  setSearchParams({}, { replace: true })
+}, [searchParams])
 ```
+
+#### Storage: no-op to prevent localStorage override
+
+GraphiQL v5 persists the query editor content to `localStorage` by default. On remount
+(key bump), it would restore the previously-stored query and override `defaultQuery`,
+causing "Load in Editor" to populate variables but not the query.
+
+Fix: pass a no-op `Storage` object to `<GraphiQL storage={noopStorage}>`:
+
+```typescript
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+  clear: () => {},
+  length: 0,
+}
+```
+
+This satisfies TypeScript's `Storage` type (avoids the `null` TS error) while ensuring
+`defaultQuery` is always respected on remount.
+
+> **Why not `storage={null}`?** GraphiQL's TypeScript type is `Storage | undefined`,
+> so `null` causes a compile error. `undefined` means "use the default" (localStorage).
+> The no-op object is the correct workaround.
 
 #### CSS isolation
 
@@ -282,7 +309,7 @@ A `useGraphiQLDefaultQuery(node)` hook maps `selectedNode` → `{ query, variabl
 | `hub` | `GetHub` — hub name, extension, first 5 projects | `{ hubId }` |
 | `project` | `GetProject` — project name, hub, first 10 root folders | `{ projectId }` |
 | `folder` | `GetFolderContents` — child folders + items with type fragment | `{ folderId, projectId }` |
-| `item` (DesignItem) | `GetDesignItem` — item + tip root component + first-level BOM relations | `{ itemId }` |
+| `item` (DesignItem) | `GetDesignItem` — item + hub + tip root component + first-level BOM relations | `{ hubId, itemId }` |
 | `null` (no selection) | Generic hub listing example | `{}` |
 
 The hook is called in `GraphiQLPage`. Editor content is updated according to this rule:
@@ -527,9 +554,9 @@ Modify `src/components/layout/Header.tsx`:
 - [ ] Query Log shows operation name, type, timing, collapsed query/vars/response
 - [ ] Expanding cells shows full query doc / JSON
 - [ ] Error rows (GraphQL `errors` array non-empty) are visually distinct
-- [ ] "Load in Editor" navigates to `/query-editor` with query and variables pre-populated
-- [ ] GraphiQL editor can run arbitrary queries against the live API
-- [ ] Autocomplete works (powered by local `schema.graphql`)
+- [x] "Load in Editor" navigates to `/query-editor` with query and variables pre-populated (fixed: no-op storage prevents localStorage from overriding `defaultQuery`)
+- [x] GraphiQL editor can run arbitrary queries against the live API
+- [x] Autocomplete works (powered by introspection through the authenticated fetcher)
 - [ ] Token refresh works — running a query after token expiry still succeeds
 - [ ] Clearing the log empties the table
 - [ ] Navigating between pages does not lose log entries
@@ -546,7 +573,7 @@ Modify `src/components/layout/Header.tsx`:
 | Log storage | React Context (in-memory, not persisted). Entries lost on page refresh — intentional for a demo tool |
 | Log cap | 200 entries — prevents memory growth during long sessions |
 | Auth in GraphiQL | Custom `fetcher` calls `getAccessToken()` per request — always fresh |
-| Schema for autocomplete | Load local `schema.graphql?raw` via Vite and call `buildSchema()` — works even if server disables introspection |
+| Schema for autocomplete | No `schema` prop — GraphiQL fires `IntrospectionQuery` through the authenticated fetcher on first mount; Monaco receives the schema automatically and autocomplete works |
 | Pre-population transfer | URL search params (`?q=...&v=...`) — simple, supports browser back button after loading |
 | GraphiQL CSS | Import in `GraphiQLPage.tsx` only — Vite injects on demand; thin override file handles any MUI conflicts |
 | Table component | Plain MUI `Table` (not DataGrid) — variable-height rows from collapsed/expanded cells |
@@ -554,7 +581,9 @@ Modify `src/components/layout/Header.tsx`:
 | Network errors | Not captured (link's `.map()` only runs on successful HTTP responses) — acceptable for demo use |
 | Query Editor layout | Shows NavDrawer (same as dashboard) so user can change selected node while in the editor |
 | Query Log layout | Uses `AppShell` with `hideDrawer={true}` — header and main frame stay visible, drawer is hidden to give the wide table full horizontal space |
-| Nav-based pre-population | `useGraphiQLDefaultQuery(node)` maps each node type to an example query + real IDs in variables; editor is controlled mode; same-type node change preserves editor contents, different-type node change replaces query + variables |
+| Nav-based pre-population | `useGraphiQLDefaultQuery(node)` maps each node type to an example query + real IDs in variables; editor uses `defaultQuery`/`initialVariables` with key-bump remount; same-type node change preserves editor contents, different-type node change replaces query + variables |
+| GraphiQL storage | No-op `Storage` object passed as `storage` prop — disables localStorage persistence so `defaultQuery` is always respected on remount |
+| `item` query variables | `item(hubId, itemId)` — API requires both args; `hubId` sourced from `NavNode.hubId` (propagated through the nav tree) |
 
 ---
 

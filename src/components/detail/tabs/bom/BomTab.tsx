@@ -19,6 +19,7 @@ import {
   GET_COMPONENT_BASE_PROPERTIES,
 } from '../../../../graphql/queries/baseProperties'
 import { coercePropertyValue } from '../../../../utils/propertyValue'
+import { clearThumbnailCache } from '../../../../services/thumbnailImageCache'
 
 const DENSITY_MAP: Record<WeaveDensity, 'compact' | 'standard' | 'comfortable'> = {
   high: 'compact',
@@ -62,6 +63,13 @@ export function BomTab({ node, basePropertyDefs, basePropsLoading }: BomTabProps
     setVisibleColumnIds(ids)
     saveSettings({ bomVisibleColumns: ids })
   }
+
+  const [thumbnailGeneration, setThumbnailGeneration] = useState(0)
+
+  const handleRefreshThumbnails = useCallback(async () => {
+    await clearThumbnailCache()
+    setThumbnailGeneration(g => g + 1)
+  }, [])
 
   const handleSigFigsChange = (n: number) => {
     setSigFigs(n)
@@ -130,8 +138,8 @@ export function BomTab({ node, basePropertyDefs, basePropsLoading }: BomTabProps
   }, [mutate, client])
 
   const cellContext: BomCellContext = useMemo(
-    () => ({ toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey, setBaseProperty }),
-    [toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey, setBaseProperty]
+    () => ({ toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey, setBaseProperty, thumbnailGeneration }),
+    [toggleRow, loadMore, sigFigs, staleBasePropsKeys, clearStaleKey, setBaseProperty, thumbnailGeneration]
   )
 
   const gridColumns: GridColDef[] = useMemo(
@@ -185,6 +193,8 @@ export function BomTab({ node, basePropertyDefs, basePropsLoading }: BomTabProps
         onSigFigsChange={handleSigFigsChange}
         basePropertyDefs={basePropertyDefs}
         basePropsLoading={basePropsLoading}
+        thumbnailColumnVisible={visibleColumnIds.includes('thumbnail')}
+        onRefreshThumbnails={handleRefreshThumbnails}
       />
       <DataGrid
         rows={rows}

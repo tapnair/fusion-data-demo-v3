@@ -1,4 +1,5 @@
 import { ApolloLink, Observable } from '@apollo/client/core'
+import type { FetchResult } from '@apollo/client/core'
 import { print } from 'graphql'
 import type { QueryLogEntry } from '../context/QueryLogContext'
 
@@ -12,9 +13,10 @@ export function createLoggingLink(
     const opType: string = opDef?.operation ?? 'query'
     const name = operationName ?? 'Anonymous'
 
-    return new Observable(observer => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new Observable<FetchResult>((observer: any) => {
       const sub = forward(operation).subscribe({
-        next: (response) => {
+        next: (response: FetchResult) => {
           addEntry({
             id: crypto.randomUUID(),
             timestamp: new Date(),
@@ -29,7 +31,7 @@ export function createLoggingLink(
           })
           observer.next(response)
         },
-        error: (err) => observer.error(err),
+        error: (err: Error) => observer.error(err),
         complete: () => observer.complete(),
       })
       return () => sub.unsubscribe()

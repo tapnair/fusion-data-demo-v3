@@ -4,7 +4,15 @@ import { typePolicies, possibleTypes } from './typePolicies'
 import { createLoggingLink } from './loggingLink'
 import type { QueryLogEntry } from '../context/QueryLogContext'
 
-export function createApolloClient(getAccessToken: () => Promise<string>, addLogEntry: (entry: QueryLogEntry) => void) {
+export function createCache(): InMemoryCache {
+  return new InMemoryCache({ typePolicies, possibleTypes })
+}
+
+export function createApolloClient(
+  cache: InMemoryCache,
+  getAccessToken: () => Promise<string>,
+  addLogEntry: (entry: QueryLogEntry) => void
+) {
   const httpLink = new HttpLink({
     uri: import.meta.env.VITE_GRAPHQL_ENDPOINT,
   })
@@ -23,10 +31,11 @@ export function createApolloClient(getAccessToken: () => Promise<string>, addLog
 
   return new ApolloClient({
     link: ApolloLink.from([authLink, loggingLink, httpLink]),
-    cache: new InMemoryCache({ typePolicies, possibleTypes }),
+    cache,
     defaultOptions: {
-      watchQuery: { fetchPolicy: 'cache-first' },
-      query:      { fetchPolicy: 'cache-first' },
+      // cache-and-network: serve cached data instantly, then re-fetch in background.
+      // Applies to useQuery / useLazyQuery (both use watchQuery internally).
+      watchQuery: { fetchPolicy: 'cache-and-network' },
     },
   })
 }

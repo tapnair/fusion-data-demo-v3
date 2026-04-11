@@ -3,11 +3,14 @@
  * Provides authentication state and methods throughout the app
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { AuthService } from '../services/auth/authService'
 import { TokenManager } from '../services/auth/tokenManager'
 import { fetchUserInfo } from '../services/auth/userInfoService'
 import { User } from '../types/auth.types'
+import { CachePersistor } from 'apollo3-cache-persist'
+import type { NormalizedCacheObject } from '@apollo/client/core'
+import { clearThumbnailCache } from '../services/thumbnailImageCache'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -16,9 +19,10 @@ interface AuthContextType {
   loading: boolean
   error: Error | null
   login: () => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   getAccessToken: () => Promise<string>
   setError: (error: Error | null) => void
+  setPersistor: (p: CachePersistor<NormalizedCacheObject>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -38,6 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  const persistorRef = useRef<CachePersistor<NormalizedCacheObject> | null>(null)
+
+  const setPersistor = useCallback(
+    (p: CachePersistor<NormalizedCacheObject>) => {
+      persistorRef.current = p
+    },
+    []
+  )
 
   // Check for existing valid token on mount
   useEffect(() => {
@@ -78,13 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Logout user
    */
-  const logout = (): void => {
+  const logout = useCallback(async (): Promise<void> => {
+    await Promise.all([
+      persistorRef.current ? persistorRef.current.purge() : Promise.resolve(),
+      clearThumbnailCache(),
+    ])
     TokenManager.clearToken()
     setAccessToken(null)
     setIsAuthenticated(false)
     setUser(null)
     authService.logout()
-  }
+  }, [])
 
   /**
    * Get current access token
@@ -128,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     getAccessToken,
     setError,
+    setPersistor,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

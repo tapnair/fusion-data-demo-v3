@@ -11,11 +11,15 @@ function randomPollInterval() {
   return Math.floor(Math.random() * (POLL_MAX_MS - POLL_MIN_MS) + POLL_MIN_MS)
 }
 
-export function useBomThumbnail(componentId: string, componentState: string | null) {
+export function useBomThumbnail(
+  componentId: string,
+  componentState: string | null,
+  thumbnailGeneration: number = 0
+) {
   const [pollInterval, setPollInterval] = useState(0)
   const isRoot = componentState === null
 
-  const { loading, error, data } = useQuery(
+  const { loading, error, data, refetch } = useQuery(
     isRoot ? GET_ROOT_COMPONENT_THUMBNAIL : GET_COMPONENT_THUMBNAIL,
     {
       variables: isRoot
@@ -26,6 +30,13 @@ export function useBomThumbnail(componentId: string, componentState: string | nu
     }
   )
 
+  // Force a network re-fetch when the user clicks "Refresh Thumbnails"
+  useEffect(() => {
+    if (thumbnailGeneration === 0) return
+    refetch()
+  }, [thumbnailGeneration]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling state machine
   useEffect(() => {
     if (!data) return
     const status = (data as any)?.component?.thumbnail?.status

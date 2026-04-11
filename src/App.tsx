@@ -3,11 +3,15 @@
  * Sets up routing, authentication, and Weave 3 theming with localStorage persistence
  */
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ApolloProvider } from '@apollo/client/react'
+import type { NormalizedCacheObject } from '@apollo/client/core'
+import { CachePersistor, LocalStorageWrapper } from 'apollo3-cache-persist'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 import { createWeaveTheme } from './theme/createWeaveTheme'
 import type { WeaveColorScheme, WeaveDensity } from './theme/types'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -17,7 +21,9 @@ import { useQueryLog } from './context/QueryLogContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { AppShell } from './components/layout/AppShell'
 import { DetailPanel } from './components/detail/DetailPanel'
-import { createApolloClient } from './apollo/client'
+import { createApolloClient, createCache } from './apollo/client'
+import { CACHE_SCHEMA_VERSION, CACHE_SCHEMA_VERSION_KEY } from './apollo/cacheVersion'
+import { evictStaleEntries, THUMBNAIL_CACHE_TTL_MS } from './services/thumbnailImageCache'
 import Home from './pages/Home'
 import Callback from './pages/Callback'
 import DebugPage from './pages/DebugPage'
@@ -25,11 +31,63 @@ import GraphiQLPage from './pages/GraphiQLPage'
 import QueryLogPage from './pages/QueryLogPage'
 import './theme/fonts.css'
 
-/** Wraps children with ApolloProvider, creating the client from AuthContext. */
+/** Wraps children with ApolloProvider, creating the client after restoring the persisted cache. */
 function ApolloWrapper({ children }: { children: React.ReactNode }) {
-  const { getAccessToken } = useAuth()
+  const { getAccessToken, setPersistor } = useAuth()
   const { addEntry } = useQueryLog()
-  const apolloClient = useMemo(() => createApolloClient(getAccessToken, addEntry), [getAccessToken, addEntry])
+  const [apolloClient, setApolloClient] = useState<ReturnType<typeof createApolloClient> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function init() {
+      const cache = createCache()
+
+      const persistor = new CachePersistor<NormalizedCacheObject>({
+        cache,
+        storage: new LocalStorageWrapper(window.localStorage),
+        key: 'fusion-demo-apollo-cache',
+        maxSize: 5242880, // 5 MB
+        debounce: 1000,
+        persistenceMapper: async (data: string) => {
+          const parsed = JSON.parse(data)
+          // Exclude Thumbnail objects — their signed URLs expire.
+          // Thumbnail image caching is handled by a separate IndexedDB plan.
+          const filtered = Object.fromEntries(
+            Object.entries(parsed).filter(([key]) => !key.startsWith('Thumbnail:'))
+          )
+          return JSON.stringify(filtered)
+        },
+      })
+
+      // Restore persisted cache if schema version matches, otherwise purge stale data.
+      const storedVersion = localStorage.getItem(CACHE_SCHEMA_VERSION_KEY)
+      if (storedVersion === CACHE_SCHEMA_VERSION) {
+        await persistor.restore()
+      } else {
+        await persistor.purge()
+        localStorage.setItem(CACHE_SCHEMA_VERSION_KEY, CACHE_SCHEMA_VERSION)
+      }
+
+      if (cancelled) return
+
+      // Give AuthContext a reference so logout can call persistor.purge().
+      setPersistor(persistor)
+      setApolloClient(createApolloClient(cache, getAccessToken, addEntry))
+    }
+
+    init().catch(console.error)
+    return () => { cancelled = true }
+  }, [getAccessToken, addEntry, setPersistor])
+
+  if (!apolloClient) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
   return <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
 }
 
@@ -57,6 +115,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem(DENSITY_STORAGE_KEY, density)
   }, [density])
+
+  // Purge thumbnail blobs older than 7 days from IndexedDB on each session start
+  useEffect(() => {
+    evictStaleEntries(THUMBNAIL_CACHE_TTL_MS).catch(console.error)
+  }, [])
 
   // Create theme based on current scheme and density
   const theme = useMemo(

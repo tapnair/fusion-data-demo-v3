@@ -130,14 +130,18 @@ function folderQuery(folderId: string, projectId: string | undefined): GraphiQLD
   }
 }
 
-function itemQuery(itemId: string): GraphiQLDefault {
+function itemQuery(hubId: string, itemId: string): GraphiQLDefault {
   return {
-    query: `query GetDesignItem($itemId: ID!) {
-  item(itemId: $itemId) {
+    query: `query GetDesignItem($hubId: ID!, $itemId: ID!) {
+  item(hubId: $hubId, itemId: $itemId) {
     id
     __typename
     ... on DesignItem {
       name
+      hub {
+        id
+        name
+      }
       tipRootModel {
         id
         component(composition: WORKING) {
@@ -167,7 +171,7 @@ function itemQuery(itemId: string): GraphiQLDefault {
     }
   }
 }`,
-    variables: JSON.stringify({ itemId }, null, 2),
+    variables: JSON.stringify({ hubId, itemId }, null, 2),
   }
 }
 
@@ -184,7 +188,7 @@ export function useGraphiQLDefaultQuery(node: NavNode | null): GraphiQLDefault {
     case 'folder':
       return folderQuery(node.entityId, node.projectId)
     case 'item':
-      return itemQuery(node.entityId)
+      return itemQuery(node.hubId ?? '', node.entityId)
     default:
       return { query: NO_SELECTION_QUERY, variables: NO_SELECTION_VARIABLES }
   }
