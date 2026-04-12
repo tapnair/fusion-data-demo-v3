@@ -30,7 +30,8 @@ export function AuthCallback() {
         // Use a hard redirect so the app re-initialises with the token already in
         // localStorage. This avoids a React state timing race where ProtectedRoute
         // still sees isAuthenticated=false in the render that follows navigate().
-        window.location.replace(window.location.origin + (redirect || '/dashboard'))
+        const base = import.meta.env.BASE_URL // '/fusion-data-demo-v3/' in prod, '/' in dev
+        window.location.replace(window.location.origin + (redirect || `${base}dashboard`))
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Authentication failed'
