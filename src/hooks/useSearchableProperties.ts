@@ -17,7 +17,7 @@ export interface SearchableProperty {
 
 export function useSearchableProperties(hubId: string | null) {
   const { data, loading, error } = useQuery(GET_SEARCHABLE_PROPERTIES, {
-    variables: { hubId, pagination: { limit: 200 } },
+    variables: { hubId, pagination: { limit: 50 } },
     skip: !hubId,
     fetchPolicy: 'cache-first',
   })
