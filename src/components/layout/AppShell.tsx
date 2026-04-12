@@ -1,8 +1,12 @@
 import { useState } from 'react'
-import { Box, Snackbar, Alert } from '@mui/material'
+import { Box, Snackbar, Alert, Collapse } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material/styles'
 import { Header } from './Header'
 import { NavDrawer } from './NavDrawer'
+import { SearchBar } from '../search/SearchBar'
+import { SearchResultsPage } from '../../pages/SearchResultsPage'
+import { useActiveHub } from '../../context/NavContext'
+import { useSearchableProperties } from '../../hooks/useSearchableProperties'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
 
 const DRAWER_STORAGE_KEY = 'nav-drawer-open'
@@ -19,6 +23,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityChange, children, contentSx, hideDrawer }: AppShellProps) {
+  const { activeHubId } = useActiveHub()
+  const { properties: searchableProps, loading: propsLoading } = useSearchableProperties(activeHubId)
+
   const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
     const stored = localStorage.getItem(DRAWER_STORAGE_KEY)
     return stored !== null ? stored === 'true' : true  // default open
@@ -30,6 +37,9 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
   })
 
   const [showNonCeWarning, setShowNonCeWarning] = useState(false)
+
+  const [searchOpen, setSearchOpen] = useState(false)
+  const handleSearchToggle = () => setSearchOpen(prev => !prev)
 
   const handleDrawerToggle = () => {
     setDrawerOpen(prev => {
@@ -55,7 +65,12 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
         onDrawerToggle={hideDrawer ? undefined : handleDrawerToggle}
         filterV2Hubs={filterV2Hubs}
         onFilterV2HubsChange={handleFilterV2HubsChange}
+        searchOpen={searchOpen}
+        onSearchToggle={handleSearchToggle}
       />
+      <Collapse in={searchOpen} unmountOnExit>
+        <SearchBar searchableProperties={searchableProps} propertiesLoading={propsLoading} />
+      </Collapse>
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {!hideDrawer && <NavDrawer open={drawerOpen} filterV2Hubs={filterV2Hubs} />}
         <Box
@@ -69,7 +84,7 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
             ...contentSx,
           }}
         >
-          {children}
+          {searchOpen ? <SearchResultsPage /> : children}
         </Box>
       </Box>
       <Snackbar

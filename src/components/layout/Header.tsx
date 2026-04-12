@@ -30,6 +30,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import CheckIcon from '@mui/icons-material/Check'
 import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
+import SearchIcon from '@mui/icons-material/Search'
 import { useAuth } from '../../context/AuthContext'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
 import type { User } from '../../types/auth.types'
@@ -49,6 +50,8 @@ interface HeaderProps {
   onDrawerToggle?: () => void
   filterV2Hubs?: boolean
   onFilterV2HubsChange?: (value: boolean) => void
+  searchOpen?: boolean
+  onSearchToggle?: () => void
 }
 
 export function Header({
@@ -59,6 +62,8 @@ export function Header({
   onDrawerToggle,
   filterV2Hubs = false,
   onFilterV2HubsChange,
+  searchOpen,
+  onSearchToggle,
 }: HeaderProps) {
   const { isAuthenticated, user, logout } = useAuth()
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -156,9 +161,19 @@ export function Header({
             Fusion Data Demo
           </Typography>
 
-          {/* Right: settings + user */}
+          {/* Right: search + settings + user */}
           {isAuthenticated && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
+              {onSearchToggle && (
+                <IconButton
+                  color="inherit"
+                  onClick={onSearchToggle}
+                  aria-label="toggle search"
+                  aria-pressed={searchOpen}
+                >
+                  <SearchIcon />
+                </IconButton>
+              )}
               {showThemeSwitcher && (
                 <>
                   <IconButton

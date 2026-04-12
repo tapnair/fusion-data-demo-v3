@@ -17,6 +17,11 @@ interface NavContextValue {
   // Which nodes are currently loading (drives spinner UX)
   loadingNodes: Set<string>
   setNodeLoading: (nodeId: string, loading: boolean) => void
+
+  // Active hub — the single hub currently expanded in the nav tree
+  activeHubId: string | null
+  activeHubNode: NavNode | null
+  setActiveHub: (node: NavNode | null) => void
 }
 
 const NavContext = createContext<NavContextValue | undefined>(undefined)
@@ -26,6 +31,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const [nodeChildrenCache, setNodeChildrenCacheState] = useState<Map<string, NavNode[]>>(new Map())
   const [loadingNodes, setLoadingNodesState] = useState<Set<string>>(new Set())
+  const [activeHubId, setActiveHubId] = useState<string | null>(null)
+  const [activeHubNode, setActiveHubNode] = useState<NavNode | null>(null)
 
   const setNodeChildren = useCallback((parentId: string, children: NavNode[]) => {
     setNodeChildrenCacheState(prev => new Map(prev).set(parentId, children))
@@ -40,6 +47,11 @@ export function NavProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const setActiveHub = useCallback((node: NavNode | null) => {
+    setActiveHubId(node?.id ?? null)
+    setActiveHubNode(node)
+  }, [])
+
   const value: NavContextValue = {
     selectedNode,
     setSelectedNode,
@@ -49,6 +61,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
     setNodeChildren,
     loadingNodes,
     setNodeLoading,
+    activeHubId,
+    activeHubNode,
+    setActiveHub,
   }
 
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>
@@ -58,4 +73,9 @@ export function useNavContext(): NavContextValue {
   const ctx = useContext(NavContext)
   if (!ctx) throw new Error('useNavContext must be used within NavProvider')
   return ctx
+}
+
+export function useActiveHub() {
+  const { activeHubId, activeHubNode, setActiveHub } = useContext(NavContext) ?? {}
+  return { activeHubId: activeHubId ?? null, activeHubNode: activeHubNode ?? null, setActiveHub: setActiveHub ?? (() => {}) }
 }

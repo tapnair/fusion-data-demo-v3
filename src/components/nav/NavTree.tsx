@@ -96,6 +96,7 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     loadingNodes,
     setSelectedNode,
     selectedNode,
+    setActiveHub,
   } = useNavContext()
   const { loadChildren } = useNavLoader()
 
@@ -112,13 +113,38 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     isLoaded: nodeChildrenCache.has(`hub:${hub.id}`),
   }))
 
+  // Set of all hub node IDs (used for single-hub expansion enforcement)
+  const hubNodeIds = hubNodes.map(h => h.id)
+
   const handleExpandedItemsChange = useCallback(
     (_event: React.SyntheticEvent | null, nodeIds: string[]) => {
-      setExpandedItems(nodeIds)
+      // Find newly added and removed items
+      const added = nodeIds.filter(id => !expandedItems.includes(id))
+      const removed = expandedItems.filter(id => !nodeIds.includes(id))
 
-      // Find newly expanded nodes (in new list but not in current list)
-      const newlyExpanded = nodeIds.filter(id => !expandedItems.includes(id))
+      // Check if any newly added item is a hub node
+      const addedHubs = added.filter(id => hubNodeIds.includes(id))
 
+      let nextExpanded: string[]
+
+      if (addedHubs.length > 0) {
+        // Single-hub rule: keep the newly expanded hub, remove all other hub IDs
+        nextExpanded = nodeIds.filter(id => !hubNodeIds.includes(id) || addedHubs.includes(id))
+        const hubNode = hubNodes.find(h => h.id === addedHubs[0]) ?? null
+        setActiveHub(hubNode)
+      } else {
+        nextExpanded = nodeIds
+        // If a hub was collapsed, clear the active hub
+        const removedHubs = removed.filter(id => hubNodeIds.includes(id))
+        if (removedHubs.length > 0) {
+          setActiveHub(null)
+        }
+      }
+
+      setExpandedItems(nextExpanded)
+
+      // Find newly expanded nodes that need their children loaded
+      const newlyExpanded = nextExpanded.filter(id => !expandedItems.includes(id))
       newlyExpanded.forEach(nodeId => {
         const node = findNodeById(hubNodes, nodeChildrenCache, nodeId)
         if (node && node.type !== 'load-more' && !nodeChildrenCache.has(node.id)) {
@@ -126,7 +152,7 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
         }
       })
     },
-    [expandedItems, setExpandedItems, hubNodes, nodeChildrenCache, loadChildren],
+    [expandedItems, setExpandedItems, hubNodes, hubNodeIds, nodeChildrenCache, loadChildren, setActiveHub],
   )
 
   const handleItemSelectionToggle = useCallback(

@@ -65,6 +65,23 @@ export const typePolicies: TypePolicies = {
       foldersByFolder:  pagedField(['projectId', 'folderId']),
       itemsByProject:   pagedField(['projectId']),
       itemsByFolder:    pagedField(['hubId', 'folderId']),
+
+      // Search — partition cache by hubId + searchCriteria; pagination vars excluded.
+      // New searches (no cursor) replace existing results; load-more appends.
+      searchByHub: {
+        keyArgs: ['hubId', 'searchCriteria'],
+        merge(existing: any, incoming: any, { args }: any) {
+          if (!args?.pagination?.cursor) {
+            // New search — replace
+            return incoming
+          }
+          // Load more — append
+          return {
+            ...incoming,
+            results: [...(existing?.results ?? []), ...incoming.results],
+          }
+        },
+      },
     },
   },
 }

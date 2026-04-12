@@ -16,6 +16,7 @@ import { createWeaveTheme } from './theme/createWeaveTheme'
 import type { WeaveColorScheme, WeaveDensity } from './theme/types'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { NavProvider } from './context/NavContext'
+import { SearchProvider } from './context/SearchContext'
 import { QueryLogProvider } from './context/QueryLogContext'
 import { useQueryLog } from './context/QueryLogContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
@@ -136,6 +137,7 @@ function App() {
             <ApolloWrapper>
               <Router basename={import.meta.env.PROD ? '/fusion-data-demo-v3' : '/'}>
                 <NavProvider>
+                  <SearchProvider>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/callback" element={<Callback />} />
@@ -196,6 +198,7 @@ function App() {
                       }
                     />
                   </Routes>
+                  </SearchProvider>
                 </NavProvider>
               </Router>
             </ApolloWrapper>
