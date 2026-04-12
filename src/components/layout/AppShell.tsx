@@ -87,7 +87,11 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
             ...contentSx,
           }}
         >
-          {searchOpen ? <SearchResultsPage /> : children}
+          {/* Keep children mounted so useNavRouting (inside DetailPanel) is never
+              destroyed while search is open — unmounting it resets isFirstRender
+              and causes the URL→state effect to clear selectedNode on re-mount. */}
+          <Box sx={{ display: searchOpen ? 'none' : 'contents' }}>{children}</Box>
+          {searchOpen && <SearchResultsPage />}
         </Box>
       </Box>
       <Snackbar
