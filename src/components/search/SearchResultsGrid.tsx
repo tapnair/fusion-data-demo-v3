@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Box, Chip, Typography, Popover } from '@mui/material'
+import { Box, Chip, Typography, Popover, Link } from '@mui/material'
 import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported'
 import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef } from '@mui/x-data-grid'
@@ -201,9 +201,27 @@ const SEARCH_STANDARD_COLUMNS: SearchColumnDef[] = [
   },
 ]
 
-const DEFAULT_SEARCH_VISIBLE_IDS = new Set(
-  SEARCH_STANDARD_COLUMNS.map(c => c.id)
-)
+const DEFAULT_SEARCH_VISIBLE_IDS = new Set([
+  ...SEARCH_STANDARD_COLUMNS.filter(c => c.id !== 'path').map(c => c.id),
+  'parentFolder',
+  'parentProject',
+])
+
+const COLUMN_VISIBILITY_STORAGE_KEY = 'search-column-visibility'
+
+function loadColumnVisibility(): Set<string> {
+  try {
+    const saved = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY)
+    if (saved) return new Set(JSON.parse(saved) as string[])
+  } catch {}
+  return new Set(DEFAULT_SEARCH_VISIBLE_IDS)
+}
+
+function saveColumnVisibility(ids: Set<string>) {
+  try {
+    localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify([...ids]))
+  } catch {}
+}
 
 // ---------------------------------------------------------------------------
 // Row navigation hook
@@ -272,12 +290,13 @@ function useRowNavigation() {
 
 export function SearchResultsGrid() {
   const { rows, loading } = useComponentSearch()
-  const { activeTypeFilters, setActiveTypeFilters } = useSearch()
+  const { activeTypeFilters, setActiveTypeFilters, closeSearch } = useSearch()
+  const { setSelectedNode } = useNavContext()
   const { activeHubId } = useActiveHub()
   const { definitions: basePropertyDefs } = useHubBasePropertyDefinitions(activeHubId)
   const handleRowClick = useRowNavigation()
 
-  const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(DEFAULT_SEARCH_VISIBLE_IDS)
+  const [visibleColumnIds, setVisibleColumnIds] = useState<Set<string>>(loadColumnVisibility)
   const [sigFigs, setSigFigs] = useState(3)
 
   const handleVisibilityChange = useCallback((id: string, visible: boolean) => {
@@ -285,9 +304,15 @@ export function SearchResultsGrid() {
       const next = new Set(prev)
       if (visible) next.add(id)
       else next.delete(id)
+      saveColumnVisibility(next)
       return next
     })
   }, [])
+
+  const navigateToNode = useCallback((node: NavNode) => {
+    setSelectedNode(node)
+    closeSearch()
+  }, [setSelectedNode, closeSearch])
 
   // Build base property columns typed for search (read-only because SearchCellContext has no setBaseProperty)
   const basePropertyColumns = useMemo(
@@ -298,14 +323,85 @@ export function SearchResultsGrid() {
     [basePropertyDefs]
   )
 
+  const locationColumns: SearchColumnDef[] = useMemo(() => [
+    {
+      id: 'parentFolder',
+      header: 'Parent Folder',
+      width: 180,
+      getValue: (row) => row.parentFolderName ?? '—',
+      renderCell: (row) => {
+        if (!row.parentFolderName || !row.parentItemFolderId) return <span>—</span>
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Link
+              component="button"
+              variant="body2"
+              underline="hover"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                navigateToNode({
+                  id: `folder:${row.parentItemFolderId}`,
+                  label: row.parentFolderName!,
+                  type: 'folder',
+                  entityId: row.parentItemFolderId!,
+                  hubId: row.parentItemHubId ?? undefined,
+                  projectId: row.parentProjectId ?? undefined,
+                  hasChildren: true,
+                  isLoaded: false,
+                  needsTreeExpansion: true,
+                })
+              }}
+            >
+              {row.parentFolderName}
+            </Link>
+          </Box>
+        )
+      },
+    },
+    {
+      id: 'parentProject',
+      header: 'Parent Project',
+      width: 180,
+      getValue: (row) => row.parentProjectName ?? '—',
+      renderCell: (row) => {
+        if (!row.parentProjectName || !row.parentProjectId) return <span>—</span>
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Link
+              component="button"
+              variant="body2"
+              underline="hover"
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation()
+                navigateToNode({
+                  id: `project:${row.parentProjectId}`,
+                  label: row.parentProjectName!,
+                  type: 'project',
+                  entityId: row.parentProjectId!,
+                  hubId: row.parentItemHubId ?? activeHubId ?? undefined,
+                  hasChildren: true,
+                  isLoaded: false,
+                  needsTreeExpansion: true,
+                })
+              }}
+            >
+              {row.parentProjectName}
+            </Link>
+          </Box>
+        )
+      },
+    },
+  ], [navigateToNode, activeHubId])
+
   const allColumns: SearchColumnDef[] = useMemo(
     () => [
       ...SEARCH_STANDARD_COLUMNS,
+      ...locationColumns,
       // PHYSICAL_PROPERTY_COLUMNS typed as SearchColumnDef — compatible since SearchRow extends ComponentRow
       ...(PHYSICAL_PROPERTY_COLUMNS as SearchColumnDef[]),
       ...(basePropertyColumns as SearchColumnDef[]),
     ],
-    [basePropertyColumns]
+    [locationColumns, basePropertyColumns]
   )
 
   const cellContext: SearchCellContext = useMemo(() => ({ sigFigs }), [sigFigs])

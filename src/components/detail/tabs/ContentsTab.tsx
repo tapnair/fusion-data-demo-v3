@@ -22,14 +22,14 @@ const EXTENSION_TYPE_LABELS: Record<string, string> = {
   'autodesk.bim360:Document':   'BIM360 Document',
 }
 
-function formatExtensionType(extensionType: string | null): string {
+export function formatExtensionType(extensionType: string | null): string {
   if (!extensionType) return '—'
   if (EXTENSION_TYPE_LABELS[extensionType]) return EXTENSION_TYPE_LABELS[extensionType]
   const segment = extensionType.split(':').pop() ?? extensionType
   return segment.replace(/([A-Z])/g, ' $1').trim()
 }
 
-function formatBytes(sizeStr: string | null): string {
+export function formatBytes(sizeStr: string | null): string {
   if (!sizeStr) return '—'
   const bytes = parseInt(sizeStr, 10)
   if (isNaN(bytes)) return '—'

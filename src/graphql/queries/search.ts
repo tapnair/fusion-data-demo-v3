@@ -26,7 +26,8 @@ export const SEARCH_BY_HUB = gql`
               designItem {
                 id
                 hub { id }
-                parentFolder { id }
+                parentFolder { id name }
+                project { id name }
               }
             }
           }
@@ -34,8 +35,8 @@ export const SEARCH_BY_HUB = gql`
             id
             name
             hub { id }
-            parentFolder { id }
-            project { id }
+            parentFolder { id name }
+            project { id name }
             path
             objectCount
           }
@@ -43,7 +44,8 @@ export const SEARCH_BY_HUB = gql`
             id
             name
             hub { id }
-            parentFolder { id }
+            parentFolder { id name }
+            project { id name }
             mimeType
             size
           }
@@ -51,7 +53,8 @@ export const SEARCH_BY_HUB = gql`
             id
             name
             hub { id }
-            parentFolder { id }
+            parentFolder { id name }
+            project { id name }
             mimeType
             size
           }
@@ -59,7 +62,8 @@ export const SEARCH_BY_HUB = gql`
             id
             name
             hub { id }
-            parentFolder { id }
+            parentFolder { id name }
+            project { id name }
             mimeType
             size
           }
@@ -67,7 +71,8 @@ export const SEARCH_BY_HUB = gql`
             id
             name
             hub { id }
-            parentFolder { id }
+            parentFolder { id name }
+            project { id name }
             mimeType
             size
           }
@@ -79,7 +84,8 @@ export const SEARCH_BY_HUB = gql`
             designItem {
               id
               hub { id }
-              parentFolder { id }
+              parentFolder { id name }
+              project { id name }
             }
           }
         }

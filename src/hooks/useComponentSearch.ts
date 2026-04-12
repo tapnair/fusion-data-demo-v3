@@ -32,7 +32,9 @@ function mapResultsToRows(data: any): SearchRow[] {
       parentItemId: null,
       parentItemHubId: null,
       parentItemFolderId: null,
+      parentFolderName: null,
       parentProjectId: null,
+      parentProjectName: null,
     }
 
     if (typename === 'Component') {
@@ -49,6 +51,9 @@ function mapResultsToRows(data: any): SearchRow[] {
         parentItemId: obj.primaryModel?.designItem?.id ?? null,
         parentItemHubId: obj.primaryModel?.designItem?.hub?.id ?? null,
         parentItemFolderId: obj.primaryModel?.designItem?.parentFolder?.id ?? null,
+        parentFolderName: obj.primaryModel?.designItem?.parentFolder?.name ?? null,
+        parentProjectId: obj.primaryModel?.designItem?.project?.id ?? null,
+        parentProjectName: obj.primaryModel?.designItem?.project?.name ?? null,
       }
     }
 
@@ -63,7 +68,9 @@ function mapResultsToRows(data: any): SearchRow[] {
         folderPath: obj.path ?? null,
         parentItemHubId: obj.hub?.id ?? null,
         parentItemFolderId: obj.parentFolder?.id ?? null,
+        parentFolderName: obj.parentFolder?.name ?? null,
         parentProjectId: obj.project?.id ?? null,
+        parentProjectName: obj.project?.name ?? null,
       }
     }
 
@@ -79,6 +86,9 @@ function mapResultsToRows(data: any): SearchRow[] {
         parentItemId: obj.designItem?.id ?? null,
         parentItemHubId: obj.designItem?.hub?.id ?? null,
         parentItemFolderId: obj.designItem?.parentFolder?.id ?? null,
+        parentFolderName: obj.designItem?.parentFolder?.name ?? null,
+        parentProjectId: obj.designItem?.project?.id ?? null,
+        parentProjectName: obj.designItem?.project?.name ?? null,
       }
     }
 
@@ -100,6 +110,9 @@ function mapResultsToRows(data: any): SearchRow[] {
       folderPath: obj?.parentFolder?.id ?? null,
       parentItemHubId: obj?.hub?.id ?? null,
       parentItemFolderId: obj?.parentFolder?.id ?? null,
+      parentFolderName: obj?.parentFolder?.name ?? null,
+      parentProjectId: obj?.project?.id ?? null,
+      parentProjectName: obj?.project?.name ?? null,
     }
   })
 }
