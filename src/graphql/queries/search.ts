@@ -16,10 +16,10 @@ export const SEARCH_BY_HUB = gql`
           __typename
           ... on Component {
             id
-            name { value }
+            nameProp: name { value }
             partNumber { value }
             description { value }
-            materialName { value }
+            materialNameProp: materialName { value }
             componentState
             primaryModel {
               id
@@ -72,8 +72,8 @@ export const SEARCH_BY_HUB = gql`
           }
           ... on Model {
             id
-            name { value }
-            materialName { value }
+            modelName: name { value }
+            modelMaterialName: materialName { value }
             timestamp
             designItem {
               id

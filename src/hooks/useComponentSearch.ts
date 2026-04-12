@@ -7,7 +7,7 @@ import type { SearchRow, SearchResultMatch } from '../types/search.types'
 
 function mapResultsToRows(data: any): SearchRow[] {
   const results: any[] = data?.searchByHub?.results ?? []
-  return results.map((result: any, index: number) => {
+  return results.filter((result: any) => result?.searchResultObject != null).map((result: any, index: number) => {
     const obj = result.searchResultObject
     const typename: string = obj?.__typename ?? ''
 
@@ -41,10 +41,10 @@ function mapResultsToRows(data: any): SearchRow[] {
         objectTypeName: 'Component',
         componentId: obj.id,
         componentState: obj.componentState ?? null,
-        name: obj.name?.value ?? result.name ?? '',
+        name: obj.nameProp?.value ?? result.name ?? '',
         partNumber: obj.partNumber?.value ?? '',
         description: obj.description?.value ?? '',
-        materialName: obj.materialName?.value ?? '',
+        materialName: obj.materialNameProp?.value ?? '',
         parentItemId: obj.primaryModel?.designItem?.id ?? null,
         parentItemHubId: obj.primaryModel?.designItem?.hub?.id ?? null,
         parentItemFolderId: obj.primaryModel?.designItem?.parentFolder?.id ?? null,
@@ -71,8 +71,8 @@ function mapResultsToRows(data: any): SearchRow[] {
         id: obj.id,
         resultType: 'MODEL' as const,
         objectTypeName: 'Model',
-        name: obj.name?.value ?? result.name ?? '',
-        materialName: obj.materialName?.value ?? '',
+        name: obj.modelName?.value ?? result.name ?? '',
+        materialName: obj.modelMaterialName?.value ?? '',
         timestamp: obj.timestamp ?? null,
         parentItemId: obj.designItem?.id ?? null,
         parentItemHubId: obj.designItem?.hub?.id ?? null,
@@ -112,7 +112,7 @@ export function useComponentSearch() {
     activeTypeFilters,
   } = useSearch()
   const { activeHubId } = useActiveHub()
-  const [executeSearch, { data, loading, error, fetchMore }] = useLazyQuery(SEARCH_BY_HUB)
+  const [executeSearch, { data, loading, error, fetchMore }] = useLazyQuery(SEARCH_BY_HUB, { errorPolicy: 'all' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {

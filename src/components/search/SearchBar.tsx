@@ -18,9 +18,10 @@ import { useActiveHub } from '../../context/NavContext'
 interface SearchBarProps {
   searchableProperties?: Array<{ id: string; propertyDefinition: { name: string; specification: string | null } }>
   propertiesLoading?: boolean
+  onClose?: () => void
 }
 
-export function SearchBar({ searchableProperties = [], propertiesLoading = false }: SearchBarProps) {
+export function SearchBar({ searchableProperties = [], propertiesLoading = false, onClose }: SearchBarProps) {
   const {
     closeSearch,
     mode,
@@ -34,8 +35,9 @@ export function SearchBar({ searchableProperties = [], propertiesLoading = false
   } = useSearch()
   const { activeHubId } = useActiveHub()
 
+  const handleClose = () => { closeSearch?.(); onClose?.() }
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') closeSearch?.()
+    if (e.key === 'Escape') handleClose()
   }
 
   const noHub = !activeHubId
@@ -52,7 +54,7 @@ export function SearchBar({ searchableProperties = [], propertiesLoading = false
           <Typography color="text.secondary" variant="body2">
             Expand a hub in the navigation tree to search within it.
           </Typography>
-          <IconButton size="small" onClick={() => closeSearch?.()} sx={{ ml: 'auto' }}>
+          <IconButton size="small" onClick={() => handleClose()} sx={{ ml: 'auto' }}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -90,7 +92,7 @@ export function SearchBar({ searchableProperties = [], propertiesLoading = false
               <ToggleButton value="property">Property</ToggleButton>
             </ToggleButtonGroup>
             <Tooltip title="Close search">
-              <IconButton size="small" onClick={() => closeSearch?.()}>
+              <IconButton size="small" onClick={() => handleClose()}>
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Tooltip>

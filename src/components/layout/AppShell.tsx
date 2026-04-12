@@ -6,6 +6,7 @@ import { NavDrawer } from './NavDrawer'
 import { SearchBar } from '../search/SearchBar'
 import { SearchResultsPage } from '../../pages/SearchResultsPage'
 import { useActiveHub } from '../../context/NavContext'
+import { useSearch } from '../../context/SearchContext'
 import { useSearchableProperties } from '../../hooks/useSearchableProperties'
 import type { WeaveColorScheme, WeaveDensity } from '../../theme/types'
 
@@ -25,6 +26,7 @@ interface AppShellProps {
 export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityChange, children, contentSx, hideDrawer }: AppShellProps) {
   const { activeHubId } = useActiveHub()
   const { properties: searchableProps, loading: propsLoading } = useSearchableProperties(activeHubId)
+  const { openSearch, closeSearch } = useSearch()
 
   const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
     const stored = localStorage.getItem(DRAWER_STORAGE_KEY)
@@ -39,7 +41,11 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
   const [showNonCeWarning, setShowNonCeWarning] = useState(false)
 
   const [searchOpen, setSearchOpen] = useState(false)
-  const handleSearchToggle = () => setSearchOpen(prev => !prev)
+  const handleSearchToggle = () => setSearchOpen(prev => {
+    const next = !prev
+    if (next) openSearch(); else closeSearch()
+    return next
+  })
 
   const handleDrawerToggle = () => {
     setDrawerOpen(prev => {
@@ -69,7 +75,7 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
         onSearchToggle={handleSearchToggle}
       />
       <Collapse in={searchOpen} unmountOnExit>
-        <SearchBar searchableProperties={searchableProps} propertiesLoading={propsLoading} />
+        <SearchBar searchableProperties={searchableProps} propertiesLoading={propsLoading} onClose={handleSearchToggle} />
       </Collapse>
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {!hideDrawer && <NavDrawer open={drawerOpen} filterV2Hubs={filterV2Hubs} />}

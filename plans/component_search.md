@@ -8,6 +8,25 @@
 > — reusing shared column definitions wherever possible.
 
 *Plan created: 2026-04-11*
+*Last updated: 2026-04-11 — implementation corrections noted below*
+
+---
+
+## Implementation Corrections (found during build & debug)
+
+These are schema/behavior differences discovered when running against the live API.
+The sections below have been updated to reflect reality.
+
+| # | Plan said | Reality / Fix |
+|---|-----------|--------------|
+| 1 | `SearchResult.thumbnail` is a plain `String` URL | It is a `Thumbnail` **object** `{ signedUrl: String }` — must query `thumbnail { signedUrl }` |
+| 2 | `SearchResult.relevancyScore: Float` | Field is named **`score`** (not `relevancyScore`) |
+| 3 | `Component.name`, `Model.name` queried as scalar strings | They are **`Property` objects** — must query `name { value }`. `Folder`/`DesignItem`/etc. `name` is a `String`. GraphQL rejects same alias pointing to conflicting types across union fragments, so aliases are required: `nameProp: name { value }` on Component, `modelName: name { value }` on Model, `materialNameProp: materialName { value }` on Component, `modelMaterialName: materialName { value }` on Model |
+| 4 | `NavContext.activeHubId` stores hub entity ID | Was incorrectly storing `NavNode.id` (prefixed `"hub:urn:adsk..."`) instead of `NavNode.entityId` (bare `"urn:adsk..."`). Fixed: `setActiveHubId(node?.entityId ?? null)` |
+| 5 | `AppShell.searchOpen` and `SearchContext.isOpen` are the same thing | They were **two separate, unsynced booleans**. `useComponentSearch` gates on `SearchContext.isOpen`, which was never set. Fix: `AppShell.handleSearchToggle` now calls `openSearch()`/`closeSearch()` from context; `SearchBar` receives an `onClose` prop so its close button also syncs AppShell's local state |
+| 6 | Apollo returns data even with partial errors | Apollo's default `errorPolicy: 'none'` **discards all data** when the server returns any errors. The API returns partial errors (parentFolder/item NOT_FOUND) alongside valid results. Fix: `useLazyQuery(SEARCH_BY_HUB, { errorPolicy: 'all' })` |
+| 7 | All `searchResultObject` entries are valid | Some results have `searchResultObject: null` due to server-side NOT_FOUND errors. Fix: filter these out in `mapResultsToRows` before mapping |
+| 8 | `SearchableProperty.id` is a top-level field | Schema field is `propertyDefinition.id`; the `SearchableProperty` wrapper itself has no `id` at top level — query and hook use `propertyDefinition { id name specification }` |
 
 ---
 
@@ -61,8 +80,8 @@ type SearchPayload {
 
 type SearchResult {
   name: String!
-  relevancyScore: Float
-  thumbnail: String          # direct URL string (NOT a Thumbnail object)
+  score: Float               # ⚠ field is "score" not "relevancyScore"
+  thumbnail: Thumbnail       # ⚠ Thumbnail OBJECT { signedUrl }, not a plain String
   matches: [SearchResultMatch!]!
   searchResultObject: SearchResultObjectUnion!
 }
@@ -73,8 +92,9 @@ type SearchResultMatch {
 }
 ```
 
-> **Key difference from BOM:** `SearchResult.thumbnail` is a plain `String` URL, not a
-> `Thumbnail` object. No polling needed — it is either present or null.
+> **Thumbnail:** `SearchResult.thumbnail` is a `Thumbnail` object `{ signedUrl: String }`,
+> same shape as used elsewhere in the API. Query as `thumbnail { signedUrl }`.
+> No polling needed — it is either present or null.
 
 ### `searchablePropertiesByHub`
 
@@ -280,28 +300,73 @@ query SearchByHub(
   $searchCriteria: SearchInput
   $pagination: PaginationInput
 ) {
-  searchByHub(
-    hubId: $hubId
-    searchCriteria: $searchCriteria
-    pagination: $pagination
-  ) {
+  searchByHub(hubId: $hubId, searchCriteria: $searchCriteria, pagination: $pagination) {
     pagination { cursor pageSize }
     results {
       name
-      relevancyScore
-      thumbnail
-      matches {
-        matchedPropertyId
-        matchedText
-      }
+      score                          # ⚠ not "relevancyScore"
+      thumbnail { signedUrl }        # ⚠ Thumbnail object, not plain String
+      matches { matchedPropertyId matchedText }
       searchResultObject {
         __typename
         ... on Component {
           id
+          nameProp: name { value }           # alias required — Property vs String conflict
+          partNumber { value }
+          description { value }
+          materialNameProp: materialName { value }  # alias required — nullability conflict with Model
+          componentState
+          primaryModel {
+            id
+            designItem { id hub { id } parentFolder { id } }
+          }
+        }
+        ... on Folder {
+          id
+          name                       # String — no alias needed
+          hub { id }
+          parentFolder { id }
+          path
+          objectCount
+        }
+        ... on DesignItem {
+          id
+          name                       # String
+          hub { id }
+          parentFolder { id }
+          mimeType
+          size
+        }
+        ... on DrawingItem {
+          id
           name
-          partNumber
-          description
-          materialName
+          hub { id }
+          parentFolder { id }
+          mimeType
+          size
+        }
+        ... on BasicItem {
+          id
+          name
+          hub { id }
+          parentFolder { id }
+          mimeType
+          size
+        }
+        ... on ConfiguredDesignItem {
+          id
+          name
+          hub { id }
+          parentFolder { id }
+          mimeType
+          size
+        }
+        ... on Model {
+          id
+          modelName: name { value }           # different alias from Component.nameProp
+          modelMaterialName: materialName { value }  # different alias — Property! vs Property
+          timestamp
+          designItem { id hub { id } parentFolder { id } }
         }
       }
     }
@@ -312,9 +377,10 @@ query GetSearchablePropertiesByHub($hubId: ID!, $pagination: PaginationInput) {
   searchablePropertiesByHub(hubId: $hubId, pagination: $pagination) {
     pagination { cursor pageSize }
     results {
-      id
+      displayName
+      propertyOrder
       propertyDefinition {
-        id
+        id        # ⚠ id lives on propertyDefinition, not on SearchableProperty directly
         name
         specification
         units { name }
@@ -365,9 +431,13 @@ all other hub nodes are collapsed. The expanded hub is the **active hub**.
 
 **`NavContext` additions:**
 ```typescript
-activeHubId: string | null          // ID of the currently expanded hub node
+activeHubId: string | null          // bare entity URN of the active hub (NavNode.entityId)
 activeHubNode: NavNode | null       // full NavNode for the active hub
 ```
+
+> ⚠ **`activeHubId` must be `NavNode.entityId`, not `NavNode.id`.**
+> Nav tree node IDs are prefixed (`"hub:urn:adsk..."`) for MUI TreeView; the API requires
+> the bare URN (`"urn:adsk..."`). `setActiveHub` stores `node?.entityId ?? null`.
 
 **`NavTree` behaviour change:**
 In the `onExpandedItemsChange` handler (fired by `SimpleTreeView`), when a hub node
@@ -491,42 +561,31 @@ Non-applicable columns show `—` for rows of a different type.
 
 ```typescript
 export function useComponentSearch() {
-  const { isOpen, query, mode, selectedPropertyId, propertyQueryValues, hubId } = useSearch()
-  const [executeSearch, { data, loading, error, fetchMore }] = useLazyQuery(SEARCH_BY_HUB)
+  const { isOpen, query, mode, selectedPropertyId, propertyQueryValues } = useSearch()
+  const { activeHubId } = useActiveHub()  // ⚠ activeHubId is NavNode.entityId (bare URN), not NavNode.id
+  const [executeSearch, { data, loading, error, fetchMore }] = useLazyQuery(
+    SEARCH_BY_HUB,
+    { errorPolicy: 'all' }  // ⚠ required: server returns partial errors alongside valid results
+  )
 
-  // Build SearchInput from context state
-  const buildSearchCriteria = (): SearchInput => {
-    if (mode === 'freetext') {
-      return { query, desiredSearchResultTypes: ['COMPONENT'] }
-    } else {
-      return {
-        searchFields: [{
-          searchableProperty: selectedPropertyId!,
-          PropertyQuery: propertyQueryValues,
-        }],
-        desiredSearchResultTypes: ['COMPONENT'],
-      }
-    }
-  }
-
-  // Fire search on query/mode changes
   useEffect(() => {
-    if (!hubId || (!query && propertyQueryValues.length === 0)) return
-    executeSearch({ variables: { hubId, searchCriteria: buildSearchCriteria(), pagination: { limit: 20 } } })
-  }, [query, mode, selectedPropertyId, propertyQueryValues, hubId])
+    if (!isOpen || !activeHubId) return  // isOpen must come from SearchContext (see AppShell sync note)
+    // ... debounced executeSearch call
+  }, [isOpen, activeHubId, query, mode, ...])
 
-  // Map results to SearchRow[]
-  const rows: SearchRow[] = useMemo(() => mapResultsToRows(data), [data])
+  // ⚠ Filter out null searchResultObject rows (server NOT_FOUND partial errors)
+  const rows = useMemo(() =>
+    mapResultsToRows(data).filter(r => r.searchResultObject != null),
+  [data])
 
-  const loadMore = () => {
-    const cursor = data?.searchByHub?.pagination?.cursor
-    if (!cursor) return
-    fetchMore({ variables: { pagination: { cursor, limit: 20 } } })
-  }
-
-  return { rows, loading, error, loadMore, hasMore: !!data?.searchByHub?.pagination?.cursor }
+  return { rows, loading, error, loadMore, hasMore: ... }
 }
 ```
+
+**Critical sync requirement:** `SearchContext.isOpen` and `AppShell.searchOpen` must stay in sync.
+`AppShell.handleSearchToggle` must call `openSearch()`/`closeSearch()` from `SearchContext` so that
+`useComponentSearch`'s `isOpen` guard works. `SearchBar`'s close button receives an `onClose` prop
+that also calls back into AppShell to keep local state in sync.
 
 ---
 

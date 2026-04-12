@@ -48,7 +48,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setActiveHub = useCallback((node: NavNode | null) => {
-    setActiveHubId(node?.id ?? null)
+    setActiveHubId(node?.entityId ?? null)
     setActiveHubNode(node)
   }, [])
 
