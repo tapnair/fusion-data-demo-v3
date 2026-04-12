@@ -8,8 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ApolloProvider } from '@apollo/client/react'
-import type { NormalizedCacheObject } from '@apollo/client/core'
-import { CachePersistor, LocalStorageWrapper } from 'apollo3-cache-persist'
+import { createCachePersistor } from './apollo/cachePersistor'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import { createWeaveTheme } from './theme/createWeaveTheme'
@@ -44,21 +43,14 @@ function ApolloWrapper({ children }: { children: React.ReactNode }) {
     async function init() {
       const cache = createCache()
 
-      const persistor = new CachePersistor<NormalizedCacheObject>({
-        cache,
-        storage: new LocalStorageWrapper(window.localStorage),
-        key: 'fusion-demo-apollo-cache',
-        maxSize: 5242880, // 5 MB
-        debounce: 1000,
-        persistenceMapper: async (data: string) => {
-          const parsed = JSON.parse(data)
-          // Exclude Thumbnail objects — their signed URLs expire.
-          // Thumbnail image caching is handled by a separate IndexedDB plan.
-          const filtered = Object.fromEntries(
-            Object.entries(parsed).filter(([key]) => !key.startsWith('Thumbnail:'))
-          )
-          return JSON.stringify(filtered)
-        },
+      const persistor = createCachePersistor(cache, async (data: string) => {
+        const parsed = JSON.parse(data)
+        // Exclude Thumbnail objects — their signed URLs expire.
+        // Thumbnail image caching is handled by a separate IndexedDB service.
+        const filtered = Object.fromEntries(
+          Object.entries(parsed).filter(([key]) => !key.startsWith('Thumbnail:'))
+        )
+        return JSON.stringify(filtered)
       })
 
       // Restore persisted cache if schema version matches, otherwise purge stale data.

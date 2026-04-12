@@ -24,7 +24,10 @@ function buildUrl(node: NavNode | null, tab: string): string {
 
   const params = new URLSearchParams()
   if (node.projectId && node.type === 'folder') params.set('projectId', node.projectId)
-  if (node.hubId    && node.type === 'item')    params.set('hubId', node.hubId)
+  if (node.hubId     && node.type === 'item')   params.set('hubId', node.hubId)
+  // Include full ancestor context so deep-link restoration needs no extra API calls
+  if (node.projectId && node.type === 'item')          params.set('projectId', node.projectId)
+  if (node.parentFolderId && node.type === 'item')     params.set('folderId', node.parentFolderId)
   if (tab && tab !== 'details') params.set('tab', tab)
 
   const qs = params.toString()
@@ -43,7 +46,8 @@ function parseLocation(pathname: string, search: string) {
   const tab = params.get('tab')
   const hubId = params.get('hubId') ?? undefined
   const projectId = params.get('projectId') ?? undefined
-  return { type, entityId, tab, hubId, projectId }
+  const folderId = params.get('folderId') ?? undefined
+  return { type, entityId, tab, hubId, projectId, folderId }
 }
 
 export function useNavRouting(
@@ -59,10 +63,17 @@ export function useNavRouting(
   const locationRef = useRef(location)
   useEffect(() => { locationRef.current = location })
 
+  // Skip the state→URL effect on the very first render.
+  // On mount the URL→state effect fires first and queues setSelectedNode(stub),
+  // but the state setter is batched — selectedNode is still null when the
+  // state→URL effect runs in the same cycle. Without this guard,
+  // buildUrl(null, activeTab) = '/dashboard' which overwrites the deep-link URL.
+  const isFirstRender = useRef(true)
+
   // ── URL → state ──────────────────────────────────────────────────────────
   // Runs whenever the browser location changes (including back/forward button).
   useEffect(() => {
-    const { type, entityId, tab, hubId, projectId } = parseLocation(
+    const { type, entityId, tab, hubId, projectId, folderId } = parseLocation(
       location.pathname,
       location.search
     )
@@ -88,6 +99,7 @@ export function useNavRouting(
       entityId,
       hubId,
       projectId,
+      parentFolderId: folderId,
       hasChildren: type !== 'item',
       isLoaded: false,
     })
@@ -99,6 +111,10 @@ export function useNavRouting(
   // Uses locationRef so the comparison is always against the current URL
   // without including location in deps (which would trigger on back/forward).
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     const target = buildUrl(selectedNode, activeTab)
     const loc = locationRef.current
     const current = loc.pathname + (loc.search || '')

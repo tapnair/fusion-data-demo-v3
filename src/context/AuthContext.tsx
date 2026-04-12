@@ -8,8 +8,7 @@ import { AuthService } from '../services/auth/authService'
 import { TokenManager } from '../services/auth/tokenManager'
 import { fetchUserInfo } from '../services/auth/userInfoService'
 import { User } from '../types/auth.types'
-import { CachePersistor } from 'apollo3-cache-persist'
-import type { NormalizedCacheObject } from '@apollo/client/core'
+import type { CachePersistorLike } from '../apollo/cachePersistor'
 import { clearThumbnailCache } from '../services/thumbnailImageCache'
 
 export interface AuthContextType {
@@ -22,7 +21,7 @@ export interface AuthContextType {
   logout: () => Promise<void>
   getAccessToken: () => Promise<string>
   setError: (error: Error | null) => void
-  setPersistor: (p: CachePersistor<NormalizedCacheObject>) => void
+  setPersistor: (p: CachePersistorLike) => void
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -43,10 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const persistorRef = useRef<CachePersistor<NormalizedCacheObject> | null>(null)
+  const persistorRef = useRef<CachePersistorLike | null>(null)
 
   const setPersistor = useCallback(
-    (p: CachePersistor<NormalizedCacheObject>) => {
+    (p: CachePersistorLike) => {
       persistorRef.current = p
     },
     []

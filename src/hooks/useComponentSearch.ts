@@ -32,6 +32,7 @@ function mapResultsToRows(data: any): SearchRow[] {
       parentItemId: null,
       parentItemHubId: null,
       parentItemFolderId: null,
+      parentProjectId: null,
     }
 
     if (typename === 'Component') {
@@ -62,6 +63,7 @@ function mapResultsToRows(data: any): SearchRow[] {
         folderPath: obj.path ?? null,
         parentItemHubId: obj.hub?.id ?? null,
         parentItemFolderId: obj.parentFolder?.id ?? null,
+        parentProjectId: obj.project?.id ?? null,
       }
     }
 

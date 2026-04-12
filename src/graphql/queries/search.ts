@@ -35,6 +35,7 @@ export const SEARCH_BY_HUB = gql`
             name
             hub { id }
             parentFolder { id }
+            project { id }
             path
             objectCount
           }

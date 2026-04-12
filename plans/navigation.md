@@ -1,5 +1,11 @@
 # Resource-Based URL Routing Plan
 
+## Status: ✅ IMPLEMENTED — with bug fixes applied (2026-04-11)
+
+Core routing is complete. Several bugs were found and fixed during testing; see **Bug Fixes & Deviations** section at the bottom.
+
+---
+
 ## Overview
 
 Replace the current single-URL `/dashboard` with a routing system where the full app state — selected node and active tab — is encoded in the URL. A shared URL navigates any authenticated user with access to the same resource directly to the same view.
@@ -319,3 +325,69 @@ Create `src/hooks/useDeepLinkExpansion.ts`:
 - No encoding of tree expansion state in the URL (which nodes are expanded beyond the selected path)
 - No encoding of drawer open/closed state in the URL (remains localStorage)
 - No deep link support for `hub` nodes (hub detail is minimal; hub expansion is trivial and handled naturally)
+
+---
+
+## Bug Fixes & Deviations (2026-04-11)
+
+Three bugs were found during testing and fixed. Each required a deviation from the original plan.
+
+---
+
+### Fix 1 — URL scheme extended: items now carry `projectId` and `folderId`
+
+**Original plan URL for items:**
+```
+/dashboard/item/:itemId?hubId=:hid
+```
+
+**Actual URL for items (after fix):**
+```
+/dashboard/item/:itemId?hubId=:hid&projectId=:pid&folderId=:fid
+```
+
+**Root cause:** `useDeepLinkExpansion` called `GET_ITEM_DETAIL(hubId, itemId)` to discover the item's `project.id` and `parentFolder.id` so it could build the ancestor chain. In practice this query returned `null` for both fields when called with a lineage URN, so `pendingAncestors` ended up as only `['hub:H1']` — the hub expanded but project and folder did not.
+
+**Fix:** `buildUrl` now includes `projectId` and `parentFolderId` as query params for item nodes. `parseLocation` extracts `folderId`. The URL→state stub is created with `parentFolderId: folderId`. `useDeepLinkExpansion` reads `n.projectId` and `n.parentFolderId` directly from the stub when available, skipping `GET_ITEM_DETAIL` entirely. The `GET_FOLDER_DETAIL` walk-up still runs to resolve intermediate folders (e.g. root folder → sub-folder → item's parent), but now uses the correct `projectId` from the URL. Falls back to `GET_ITEM_DETAIL` for old/external links that predate this fix.
+
+**Files changed:** `src/hooks/useNavRouting.ts`, `src/hooks/useDeepLinkExpansion.ts`
+
+---
+
+### Fix 2 — Auth redirect loses the URL (React state timing race)
+
+**Symptom:** Pasting a deep link in a new tab, authenticating via OAuth, and landing on `/dashboard` instead of the original URL.
+
+**Root cause:** Two-stage race condition:
+1. `ProtectedRoute` correctly saved the URL to `sessionStorage` before redirecting to `/`
+2. After OAuth, `AuthCallback` called `window.__handleAuthSuccess` (queues `setIsAuthenticated(true)`) then `navigate(savedUrl)` via React Router
+3. On the next render, `ProtectedRoute` still saw `isAuthenticated=false` (React state batch hadn't flushed) → re-saved the URL and redirected to `/` again
+4. `Home` then saw `isAuthenticated=true` (state flushed) and unconditionally redirected to `/dashboard`, discarding the `sessionStorage` value
+
+**Fix:** `AuthCallback` now uses `window.location.replace(window.location.origin + redirect)` instead of React Router's `navigate()`. A hard redirect forces a full page reload; the app re-initialises with the token already in `localStorage`, so `AuthProvider`'s mount effect sets `isAuthenticated=true` before `ProtectedRoute` ever renders.
+
+**Files changed:** `src/components/auth/AuthCallback.tsx`, `src/components/auth/ProtectedRoute.tsx` (sessionStorage save added)
+
+---
+
+### Fix 3 — NavTree timing race: hub expands but children never load on deep link
+
+**Symptom:** After deep-link restoration, the hub node expanded in the tree but its children (projects) never appeared — even though `useDeepLinkExpansion` had already added `hub:H1` to `expandedItems`.
+
+**Root cause:** `useDeepLinkExpansion` calls `setExpandedItems(['hub:H1'])` to trigger hub expansion. NavTree's expansion effect (watching `[expandedItems]`) calls `findNodeById(hubNodes, ...)` to get the hub node and call `loadChildren`. But when the deep link is processed on mount, `useHubs` hasn't resolved yet — `hubNodes` is empty. `findNodeById` returns `null`, so `loadChildren` is never called. When hubs eventually load, `expandedItems` hasn't changed, so the effect doesn't re-run.
+
+**Fix:** A second `useEffect` was added to `NavTree` that depends on `[hubNodes]`. When `hubNodes` first populates, it iterates `expandedItems` and calls `loadChildren` for any node that is expanded but not yet in `nodeChildrenCache` or `loadingNodes`. This catches the timing gap where expansion was set before the hub list loaded.
+
+**Files changed:** `src/components/nav/NavTree.tsx`
+
+---
+
+### Fix 4 — `useNavRouting` state→URL effect overwrote deep-link URL on first render
+
+**Symptom:** Pasting a deep link caused a brief flash where the URL was reset to `/dashboard`.
+
+**Root cause:** On mount, both effects in `useNavRouting` ran in the same cycle. The URL→state effect queued `setSelectedNode(stub)` but the state→URL effect still saw `selectedNode=null` (state update hadn't applied) and called `navigate('/dashboard')`, overwriting the deep-link URL.
+
+**Fix:** `isFirstRender` ref guard skips the state→URL effect on the very first render. State updates from the URL→state effect are applied before the state→URL effect fires on subsequent renders.
+
+**Files changed:** `src/hooks/useNavRouting.ts`

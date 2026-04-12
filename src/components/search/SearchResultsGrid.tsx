@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Box, Chip, Typography } from '@mui/material'
+import { Box, Chip, Typography, Popover } from '@mui/material'
 import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported'
 import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef } from '@mui/x-data-grid'
@@ -35,16 +35,41 @@ function formatBytes(bytes: string | null): string {
 // ---------------------------------------------------------------------------
 
 function ThumbnailCell({ row }: { row: SearchRow }) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
       {row.thumbnailUrl ? (
-        <img
-          src={row.thumbnailUrl}
-          width={48}
-          height={48}
-          style={{ objectFit: 'cover', borderRadius: 4 }}
-          alt=""
-        />
+        <>
+          <img
+            src={row.thumbnailUrl}
+            width={48}
+            height={48}
+            style={{ objectFit: 'cover', borderRadius: 4 }}
+            alt=""
+            onMouseEnter={(e) => setAnchorEl(e.currentTarget)}
+            onMouseLeave={() => setAnchorEl(null)}
+          />
+          <Popover
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'center', horizontal: 'left' }}
+            disableRestoreFocus
+            sx={{ pointerEvents: 'none' }}
+          >
+            <Box sx={{ p: 1, bgcolor: 'background.paper' }}>
+              <img
+                src={row.thumbnailUrl}
+                width={200}
+                height={200}
+                style={{ objectFit: 'contain', display: 'block' }}
+                alt=""
+              />
+            </Box>
+          </Popover>
+        </>
       ) : (
         <ImageNotSupportedIcon sx={{ color: 'text.disabled', fontSize: 20 }} />
       )}
@@ -187,10 +212,12 @@ const DEFAULT_SEARCH_VISIBLE_IDS = new Set(
 function useRowNavigation() {
   const { setSelectedNode, setExpandedItems, expandedItems } = useNavContext()
   const { activeHubId } = useActiveHub()
+  const { closeSearch } = useSearch()
 
   return useCallback(
     (row: SearchRow) => {
-      if (row.resultType === 'COMPONENT') {
+      if (row.resultType === 'COMPONENT' || row.resultType === 'MODEL') {
+        // Navigate to the parent design item
         if (!row.parentItemId || !row.parentItemHubId) return
         const hubId = row.parentItemHubId
         const itemNode: NavNode = {
@@ -201,15 +228,9 @@ function useRowNavigation() {
           hubId,
           hasChildren: true,
           isLoaded: false,
+          needsTreeExpansion: true,
         }
         setSelectedNode(itemNode)
-        // Expand parent folder if known
-        if (row.parentItemFolderId) {
-          const folderId = `folder:${row.parentItemFolderId}`
-          if (!expandedItems.includes(folderId)) {
-            setExpandedItems([...expandedItems, folderId])
-          }
-        }
       } else if (row.resultType === 'FOLDER') {
         const hubId = row.parentItemHubId ?? activeHubId ?? undefined
         const folderNode: NavNode = {
@@ -218,15 +239,14 @@ function useRowNavigation() {
           type: 'folder',
           entityId: row.id,
           hubId,
+          projectId: row.parentProjectId ?? undefined,
           hasChildren: true,
           isLoaded: false,
+          needsTreeExpansion: true,
         }
         setSelectedNode(folderNode)
-        if (!expandedItems.includes(folderNode.id)) {
-          setExpandedItems([...expandedItems, folderNode.id])
-        }
       } else {
-        // FILE or MODEL — navigate to the item
+        // FILE — navigate to the item directly
         const hubId = row.parentItemHubId ?? activeHubId ?? undefined
         const itemNode: NavNode = {
           id: `item:${row.id}`,
@@ -236,17 +256,13 @@ function useRowNavigation() {
           hubId,
           hasChildren: false,
           isLoaded: false,
+          needsTreeExpansion: true,
         }
         setSelectedNode(itemNode)
-        if (row.parentItemFolderId) {
-          const folderId = `folder:${row.parentItemFolderId}`
-          if (!expandedItems.includes(folderId)) {
-            setExpandedItems([...expandedItems, folderId])
-          }
-        }
       }
+      closeSearch()
     },
-    [setSelectedNode, setExpandedItems, expandedItems, activeHubId]
+    [setSelectedNode, setExpandedItems, expandedItems, activeHubId, closeSearch]
   )
 }
 

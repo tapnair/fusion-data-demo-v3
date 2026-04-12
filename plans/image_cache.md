@@ -1,5 +1,11 @@
 # Plan: Thumbnail Image Caching (IndexedDB)
 
+## Status: ✅ FULLY IMPLEMENTED (2026-04-11)
+
+All phases complete. See implementation notes at bottom for what was already in place vs. added in the final session.
+
+---
+
 ## Fusion Data Demo v3
 
 > **Goal:** Cache BOM thumbnail images as blobs in IndexedDB, keyed by `componentId`.
@@ -447,3 +453,36 @@ export const THUMBNAIL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000  // 7 days
 | Q1 — TTL | **7 days** |
 | Q2 — Stale images | **"Refresh Thumbnails" button** in BOM header — clears IndexedDB and bumps `thumbnailGeneration` to force re-fetch of all visible cells |
 | Q3 — Storage limit | **TTL only** — no entry count cap; 7-day eviction is sufficient for demo usage |
+
+---
+
+## Implementation Notes (2026-04-11)
+
+### What was already in place before the final session
+When the final implementation session ran, most of the plumbing was already committed from earlier sessions:
+- `src/services/thumbnailImageCache.ts` — fully implemented (`openDB`, `getThumbnailBlob`, `setThumbnailBlob`, `evictStaleEntries`, `clearThumbnailCache`, `THUMBNAIL_CACHE_TTL_MS`)
+- `src/context/AuthContext.tsx` — `clearThumbnailCache()` already called on logout via `Promise.all`
+- `src/App.tsx` — `evictStaleEntries(THUMBNAIL_CACHE_TTL_MS)` already called on mount
+- `src/components/detail/tabs/bom/BomTab.tsx` — `thumbnailGeneration` state, `clearThumbnailCache()` + increment on "Refresh Thumbnails", wired into `BomCellContext`
+- `src/components/detail/tabs/bom/BomColumnSettings.tsx` — "Refresh Thumbnails" `IconButton` with `RefreshIcon`, visible only when thumbnail column is enabled
+- `src/types/bom.types.ts` (via `bomColumns.ts`) — `thumbnailGeneration: number` in `BomCellContext`
+- `idb` package — already installed
+
+### What was added in the final session
+Two files completed the implementation:
+
+**`src/hooks/useBomThumbnail.ts`** — rewritten to add:
+- Mount effect: `getThumbnailBlob(componentId)` → `URL.createObjectURL(blob)` → `setObjectUrl` immediately (cached images render before any API response)
+- `objectUrlRef` for safe cleanup on unmount (avoids stale closure issue with plain state)
+- `fetchedRef` to prevent double-fetch in React StrictMode
+- `thumbnailGeneration` reset effect: revokes current objectUrl, clears `fetchedRef`, sets `objectUrl = null` so the next `signedUrl` triggers a fresh network fetch
+- `signedUrl` effect: `fetch(signedUrl)` → `blob()` → `setThumbnailBlob` → `URL.createObjectURL` → `setObjectUrl` (only runs on cache miss)
+- Returns `objectUrl` in addition to existing fields
+
+**`src/components/detail/tabs/bom/bomColumns.ts`** — `BomThumbnailCellInner`:
+- Destructures `objectUrl` instead of `signedUrl` from `useBomThumbnail`
+- Skeleton guard changed from `!signedUrl` → `!objectUrl`
+- Both `<img src>` elements (inline thumbnail and hover popover) use `objectUrl`
+
+### Deviation from plan: cancelled useEffect return for objectUrl
+The plan suggested revoking the objectUrl inside the mount effect's cleanup function. The actual implementation uses `objectUrlRef` to track the current URL, with revocation in the cleanup AND in the `signedUrl` effect (before creating a new objectUrl). This prevents a double-revoke if the objectUrl changes mid-lifecycle.

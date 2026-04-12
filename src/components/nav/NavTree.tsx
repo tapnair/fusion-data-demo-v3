@@ -96,6 +96,7 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     loadingNodes,
     setSelectedNode,
     selectedNode,
+    activeHubNode,
     setActiveHub,
   } = useNavContext()
   const { loadChildren } = useNavLoader()
@@ -115,6 +116,32 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
 
   // Set of all hub node IDs (used for single-hub expansion enforcement)
   const hubNodeIds = hubNodes.map(h => h.id)
+
+  // Sync activeHub from expandedItems — covers all code paths that mutate
+  // expandedItems directly (useDeepLinkExpansion, search navigation, etc.)
+  // and enforces the single-hub rule on restoration.
+  useEffect(() => {
+    if (hubNodes.length === 0) return
+    const hubIdSet = new Set(hubNodeIds)
+    const expandedHubIds = expandedItems.filter(id => hubIdSet.has(id))
+
+    if (expandedHubIds.length === 0) {
+      if (activeHubNode !== null) setActiveHub(null)
+      return
+    }
+
+    // Enforce single-hub: drop any extra expanded hubs beyond the first
+    if (expandedHubIds.length > 1) {
+      setExpandedItems(expandedItems.filter(id => !hubIdSet.has(id) || id === expandedHubIds[0]))
+    }
+
+    const hubNode = hubNodes.find(h => h.id === expandedHubIds[0]) ?? null
+    if (hubNode?.entityId !== activeHubNode?.entityId) {
+      setActiveHub(hubNode)
+    }
+  // hubNodeIds is a new array each render — depend on hubNodes instead
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedItems, hubNodes])
 
   const handleExpandedItemsChange = useCallback(
     (_event: React.SyntheticEvent | null, nodeIds: string[]) => {
@@ -178,10 +205,21 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
 
   useEffect(() => {
     if (!selectedNode) return
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`nav-tree-${selectedNode.id}`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    })
+    const targetId = `nav-tree-${selectedNode.id}`
+    let attempts = 0
+    const tryScroll = () => {
+      const el = document.getElementById(targetId)
+      const container = document.getElementById('nav-tree-scroll-container')
+      if (el && container) {
+        const elTop = el.getBoundingClientRect().top
+        const containerTop = container.getBoundingClientRect().top
+        const targetOffset = elTop - containerTop - container.clientHeight * 0.3
+        container.scrollBy({ top: targetOffset, behavior: 'smooth' })
+      } else if (attempts < 10) {
+        setTimeout(tryScroll, 100 * Math.pow(2, attempts++))
+      }
+    }
+    requestAnimationFrame(tryScroll)
   }, [selectedNode?.id, nodeChildrenCache])
 
   useEffect(() => {
@@ -196,6 +234,20 @@ export function NavTree({ filterV2Hubs }: NavTreeProps) {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedItems])
+
+  // Retry loading children for expanded nodes when hubNodes first populates.
+  // This fixes the race where deep-link expansion adds hub IDs to expandedItems
+  // before the useHubs query resolves, so findNodeById returned null above.
+  useEffect(() => {
+    if (hubNodes.length === 0) return
+    expandedItems.forEach(nodeId => {
+      if (nodeId.startsWith('__')) return
+      if (nodeChildrenCache.has(nodeId) || loadingNodes.has(nodeId)) return
+      const node = findNodeById(hubNodes, nodeChildrenCache, nodeId)
+      if (node?.hasChildren) loadChildren(node)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubNodes])
 
   if (hubsLoading) {
     return (

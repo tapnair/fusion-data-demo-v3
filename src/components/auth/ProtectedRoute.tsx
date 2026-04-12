@@ -22,6 +22,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
+    const dest = window.location.pathname + window.location.search
+    if (dest && dest !== '/') {
+      sessionStorage.setItem('post-auth-redirect', dest)
+    }
     return <Navigate to="/" replace />
   }
 

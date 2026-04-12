@@ -26,7 +26,7 @@ interface AppShellProps {
 export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityChange, children, contentSx, hideDrawer }: AppShellProps) {
   const { activeHubId } = useActiveHub()
   const { properties: searchableProps, loading: propsLoading } = useSearchableProperties(activeHubId)
-  const { openSearch, closeSearch } = useSearch()
+  const { isOpen: searchOpen, openSearch, closeSearch } = useSearch()
 
   const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
     const stored = localStorage.getItem(DRAWER_STORAGE_KEY)
@@ -40,12 +40,9 @@ export function AppShell({ colorScheme, density, onColorSchemeChange, onDensityC
 
   const [showNonCeWarning, setShowNonCeWarning] = useState(false)
 
-  const [searchOpen, setSearchOpen] = useState(false)
-  const handleSearchToggle = () => setSearchOpen(prev => {
-    const next = !prev
-    if (next) openSearch(); else closeSearch()
-    return next
-  })
+  const handleSearchToggle = () => {
+    if (searchOpen) closeSearch(); else openSearch()
+  }
 
   const handleDrawerToggle = () => {
     setDrawerOpen(prev => {

@@ -33,6 +33,8 @@ export interface SearchRow extends ComponentRow {
   parentItemId: string | null
   parentItemHubId: string | null
   parentItemFolderId: string | null
+  /** For FOLDER results: the MFG project ID (needed to expand the tree). */
+  parentProjectId: string | null
 }
 
 export interface SearchCellContext {

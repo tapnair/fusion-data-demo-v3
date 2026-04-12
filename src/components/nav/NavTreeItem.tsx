@@ -67,7 +67,7 @@ export function NavTreeItem({
   )
 
   return (
-    <TreeItem itemId={itemId} label={itemLabel}>
+    <TreeItem itemId={itemId} label={itemLabel} id={`nav-tree-${itemId}`}>
       {children}
     </TreeItem>
   )

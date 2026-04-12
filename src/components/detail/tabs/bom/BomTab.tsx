@@ -150,7 +150,7 @@ export function BomTab({ node, basePropertyDefs, basePropsLoading }: BomTabProps
         width: c.width,
         flex: c.flex,
         sortable: false,
-        valueGetter: (_value: unknown, row: BomRow) => c.getValue(row) ?? '',
+        valueGetter: (_value: unknown, row: BomRow) => c.getValue?.(row) ?? '',
         renderCell: c.renderCell
           ? (params: any) => c.renderCell!(params.row as BomRow, cellContext)
           : undefined,

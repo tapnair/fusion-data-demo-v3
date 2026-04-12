@@ -25,7 +25,12 @@ export function AuthCallback() {
           (window as any).__handleAuthSuccess(tokenResponse.access_token)
         }
 
-        navigate('/dashboard', { replace: true })
+        const redirect = sessionStorage.getItem('post-auth-redirect')
+        sessionStorage.removeItem('post-auth-redirect')
+        // Use a hard redirect so the app re-initialises with the token already in
+        // localStorage. This avoids a React state timing race where ProtectedRoute
+        // still sees isAuthenticated=false in the render that follows navigate().
+        window.location.replace(window.location.origin + (redirect || '/dashboard'))
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Authentication failed'

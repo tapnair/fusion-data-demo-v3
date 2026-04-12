@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { GET_ROOT_COMPONENT_THUMBNAIL, GET_COMPONENT_THUMBNAIL } from '../graphql/queries/thumbnail'
+import { getThumbnailBlob, setThumbnailBlob } from '../services/thumbnailImageCache'
 
 export const WORKING_STATES = ['IN_PROGRESS', 'PENDING', 'TIMEOUT']
 
@@ -17,7 +18,41 @@ export function useBomThumbnail(
   thumbnailGeneration: number = 0
 ) {
   const [pollInterval, setPollInterval] = useState(0)
+  const [objectUrl, setObjectUrl] = useState<string | null>(null)
+  const objectUrlRef = useRef<string | null>(null)
+  const fetchedRef = useRef(false)
   const isRoot = componentState === null
+
+  // Step 1: Check IndexedDB on mount and revoke objectUrl on unmount
+  useEffect(() => {
+    let cancelled = false
+    getThumbnailBlob(componentId).then(blob => {
+      if (blob && !cancelled) {
+        const url = URL.createObjectURL(blob)
+        objectUrlRef.current = url
+        setObjectUrl(url)
+      }
+    }).catch(() => {/* ignore IDB errors */})
+
+    return () => {
+      cancelled = true
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [componentId])
+
+  // Step 2: Reset objectUrl when user forces a refresh
+  useEffect(() => {
+    if (thumbnailGeneration === 0) return
+    fetchedRef.current = false
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
+    setObjectUrl(null)
+  }, [thumbnailGeneration])
 
   const { loading, error, data, refetch } = useQuery(
     isRoot ? GET_ROOT_COMPONENT_THUMBNAIL : GET_COMPONENT_THUMBNAIL,
@@ -53,5 +88,21 @@ export function useBomThumbnail(
   const status: string | null = thumbnail?.status ?? null
   const signedUrl: string | null = thumbnail?.signedUrl ?? null
 
-  return { loading, error, status, signedUrl }
+  // Step 3: Fetch blob when signedUrl is available and we don't already have a cached blob
+  useEffect(() => {
+    if (!signedUrl || objectUrl || fetchedRef.current) return
+    fetchedRef.current = true
+    fetch(signedUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        setThumbnailBlob(componentId, blob).catch(console.error)
+        const url = URL.createObjectURL(blob)
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = url
+        setObjectUrl(url)
+      })
+      .catch(console.error)
+  }, [signedUrl, componentId, objectUrl])
+
+  return { loading, error, status, signedUrl, objectUrl }
 }

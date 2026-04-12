@@ -45,7 +45,7 @@ export function NavDrawer({ open, filterV2Hubs }: NavDrawerProps) {
         </Typography>
       </Box>
       <Divider />
-      <Box sx={{ overflow: 'auto', flex: 1 }}>
+      <Box id="nav-tree-scroll-container" sx={{ overflow: 'auto', flex: 1 }}>
         <NavTree filterV2Hubs={filterV2Hubs} />
       </Box>
     </Drawer>

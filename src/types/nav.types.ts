@@ -12,6 +12,8 @@ export interface NavNode {
   hasChildren: boolean
   isLoaded: boolean
   parentNodeId?: string  // for load-more nodes only — the folder node id they belong to
+  /** When true, useDeepLinkExpansion expands the tree to this node even if label is non-empty. */
+  needsTreeExpansion?: boolean
 }
 
 export interface FolderPaginationState {
