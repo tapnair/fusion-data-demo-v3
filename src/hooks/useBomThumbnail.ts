@@ -88,7 +88,9 @@ export function useBomThumbnail(
   const status: string | null = thumbnail?.status ?? null
   const signedUrl: string | null = thumbnail?.signedUrl ?? null
 
-  // Step 3: Fetch blob when signedUrl is available and we don't already have a cached blob
+  // Step 3: Fetch blob when signedUrl is available and we don't already have a cached blob.
+  // On CORS failure (e.g. GitHub Pages), reset fetchedRef so refresh can retry,
+  // and let the cell fall back to rendering <img src={signedUrl}> directly.
   useEffect(() => {
     if (!signedUrl || objectUrl || fetchedRef.current) return
     fetchedRef.current = true
@@ -101,7 +103,10 @@ export function useBomThumbnail(
         objectUrlRef.current = url
         setObjectUrl(url)
       })
-      .catch(console.error)
+      .catch(() => {
+        // Reset so a manual refresh can retry; cell will fall back to signedUrl directly.
+        fetchedRef.current = false
+      })
   }, [signedUrl, componentId, objectUrl])
 
   return { loading, error, status, signedUrl, objectUrl }

@@ -34,14 +34,17 @@ export type BomColumnDef = ComponentColumnDef<BomRow, BomCellContext>
 
 function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thumbnailGeneration: number }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
-  const { loading, error, status, objectUrl } = useBomThumbnail(row.componentId, row.componentState, thumbnailGeneration)
+  const { loading, error, status, signedUrl, objectUrl } = useBomThumbnail(row.componentId, row.componentState, thumbnailGeneration)
   const isWorking = status !== null && WORKING_STATES.includes(status)
+  // Use cached blob URL when available; fall back to signedUrl directly for <img> tags
+  // (fetch() is blocked by CORS on some hosts but <img src> is not).
+  const displayUrl = objectUrl ?? signedUrl
 
   if (error || status === 'FAILED') {
     return React.createElement(BrokenImageIcon, { fontSize: 'small', sx: { color: 'text.disabled' } })
   }
 
-  if (loading || isWorking || !objectUrl) {
+  if (loading || isWorking || !displayUrl) {
     return React.createElement(Skeleton, {
       variant: 'rectangular',
       width: 40,
@@ -54,7 +57,7 @@ function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thum
     React.Fragment,
     null,
     React.createElement('img', {
-      src: objectUrl,
+      src: displayUrl,
       width: 40,
       height: 40,
       style: { objectFit: 'cover' as const, borderRadius: 4 },
@@ -76,7 +79,7 @@ function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thum
         Box,
         { sx: { p: 1, bgcolor: 'background.paper' } },
         React.createElement('img', {
-          src: objectUrl,
+          src: displayUrl,
           width: 200,
           height: 200,
           style: { objectFit: 'contain' as const, display: 'block' },
