@@ -12,6 +12,7 @@ import {
   PHYSICAL_PROPERTY_COLUMNS,
   makeBasePropertyColumn as _makeBasePropertyColumn,
 } from '../../../shared/componentColumns'
+import { EditableTextCell } from '../../../shared/EditableTextCell'
 
 export interface BomCellContext extends BasePropertiesCapableContext {
   toggleRow: (row: BomRow) => void
@@ -157,6 +158,12 @@ export const BOM_COLUMNS: BomColumnDef[] = [
     header: 'Description',
     flex: 2,
     getValue: (row) => row.description,
+    renderCell: (row, ctx) =>
+      React.createElement(EditableTextCell, {
+        value: row.description,
+        readOnly: !ctx.setDescription,
+        onCommit: (next: string) => ctx.setDescription!(row.componentId, next),
+      }),
   },
   {
     id: 'partNumber',

@@ -24,6 +24,8 @@ export interface AppSettings {
   bomVisibleColumns?: string[]
   /** Number of decimal places used when formatting physical property values (0–6). */
   bomSigFigs?: number
+  /** IDs of viewer-properties-panel rows the user has chosen to display. */
+  viewerPanelVisibleColumns?: string[]
 }
 
 const DEFAULTS: AppSettings = {

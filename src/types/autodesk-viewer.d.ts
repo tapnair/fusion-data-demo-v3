@@ -60,6 +60,7 @@ declare namespace Autodesk {
       getSelection(): number[]
       clearSelection(): void
       select(dbIds: number | number[]): void
+      fitToView(dbIds?: number[]): void
       getProperties(
         dbId: number,
         onSuccess: (result: PropertyResult) => void,

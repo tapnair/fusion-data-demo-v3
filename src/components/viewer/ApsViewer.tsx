@@ -14,7 +14,7 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }: ApsViewerProp
   const containerRef = useRef<HTMLDivElement>(null)
   const { viewerLoaded, viewerError, viewerRef, viewerInitialized } =
     useApsViewer(containerRef, encodedUrn, isReady, getAccessToken)
-  const { selection } = useViewerSelection(viewerRef, viewerInitialized)
+  const { selection, selectByDbId } = useViewerSelection(viewerRef, viewerInitialized)
 
   // Resize the WebGL canvas after the panel slide transition completes
   useEffect(() => {
@@ -61,7 +61,7 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }: ApsViewerProp
       {/* Sliding properties panel wrapper */}
       <Box
         sx={{
-          width: selection ? 320 : 0,
+          width: selection ? 380 : 0,
           overflow: 'hidden',
           transition: 'width 300ms ease',
           flexShrink: 0,
@@ -70,6 +70,7 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }: ApsViewerProp
         <ViewerPropertiesPanel
           selection={selection}
           onClose={() => viewerRef.current?.clearSelection()}
+          onSelectDbId={selectByDbId}
         />
       </Box>
     </Box>

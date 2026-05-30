@@ -47,6 +47,7 @@ export interface BasePropertiesCapableContext extends ComponentCellContext {
     specification: string | null,
     rawValue: string
   ) => Promise<void>
+  setDescription?: (componentId: string, value: string) => Promise<void>
   staleBasePropsKeys?: Set<string>
   clearStaleKey?: (key: string) => void
 }
@@ -408,6 +409,7 @@ function BasePropCellInner({
       setSaving(true)
       try {
         await ctx.setBaseProperty!(row.componentId, row.componentState, definition.id, definition.specification, trimmed)
+        setOptimisticValue(null)
       } catch (err: any) {
         setOptimisticValue(null)
         setValidationError(err?.message ?? 'Save failed')

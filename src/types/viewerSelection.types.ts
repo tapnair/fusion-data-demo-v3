@@ -8,15 +8,25 @@ export interface ViewerProperty {
   type: number
 }
 
-export interface ViewerSelection {
+export interface HierarchyNode {
+  dbId: number
+  name: string
+}
+
+export interface ViewerBody {
   dbId: number
   name: string
   externalId: string
-  hierarchyPath: string[]
-  properties: ViewerProperty[]        // body (selected node) properties
+  properties: ViewerProperty[]
+}
 
-  // Parent component — one level up in the instance tree from the selected body
-  parentDbId: number | null
-  parentName: string
-  parentProperties: ViewerProperty[]  // component properties (empty array if no parent)
+export interface ViewerSelection {
+  componentDbId: number
+  componentName: string
+  componentProperties: ViewerProperty[]
+  modelId: string | null
+
+  body: ViewerBody | null
+
+  hierarchyPath: HierarchyNode[]
 }
