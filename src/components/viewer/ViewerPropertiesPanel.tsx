@@ -16,7 +16,10 @@ import {
   Checkbox,
   Skeleton,
   Link,
+  Tabs,
+  Tab,
 } from '@mui/material'
+import { ErpTab } from './ErpTab'
 import CloseIcon from '@mui/icons-material/Close'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import VisibilityIcon from '@mui/icons-material/Visibility'
@@ -221,10 +224,15 @@ export function ViewerPropertiesPanel({
 }: ViewerPropertiesPanelProps) {
   const [showHidden, setShowHidden] = useState(false)
   const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null)
+  const [tab, setTab] = useState<'properties' | 'erp'>('properties')
 
   useEffect(() => {
     setShowHidden(false)
   }, [selection])
+
+  useEffect(() => {
+    setTab('properties')
+  }, [selection?.componentDbId])
 
   const { activeHubId } = useActiveHub()
   const { definitions: basePropertyDefs } = useHubBasePropertyDefinitions(activeHubId)
@@ -419,10 +427,24 @@ export function ViewerPropertiesPanel({
         })}
       </Box>
 
-      <Divider />
+      {!isFallback && (
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="fullWidth"
+          sx={{ minHeight: 36, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
+        >
+          <Tab label="Properties" value="properties" sx={{ minHeight: 36, py: 0 }} />
+          <Tab label="ERP" value="erp" sx={{ minHeight: 36, py: 0 }} />
+        </Tabs>
+      )}
+
+      {isFallback && <Divider />}
 
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        {isFallback ? (
+        {!isFallback && tab === 'erp' ? (
+          <ErpTab modelId={selection.modelId} />
+        ) : isFallback ? (
           <>
             <Alert severity="info" sx={{ m: 1 }}>
               MFG DM data not available for this component.

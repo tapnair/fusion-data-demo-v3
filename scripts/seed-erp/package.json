@@ -1,0 +1,24 @@
+{
+  "name": "fusion-erp-seed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Walk a Fusion assembly via the MFG DM API and seed mock SAP-like material-master data into MongoDB Atlas.",
+  "scripts": {
+    "seed": "tsx src/index.ts seed",
+    "clear": "tsx src/index.ts clear"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.0.3",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "graphql": "^16.9.0",
+    "graphql-request": "^7.1.0",
+    "mongodb": "^6.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
