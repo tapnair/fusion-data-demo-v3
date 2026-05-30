@@ -4,8 +4,12 @@
  *
  * Flow (triggered only when ViewTab mounts — i.e. user clicks the View tab):
  *   1. GET tip version URN from Data Management API  (folded into 'submitting' spinner)
- *   2. POST translation job (SVF2)
- *   3. Poll GET manifest every 5 s until status === 'success' or terminal failure
+ *   2. GET manifest — branch on existing translation state:
+ *        - 'success'                 → go straight to 'ready' (skip POST + polling)
+ *        - null / 'failed' / 'timeout' → POST translation job
+ *        - 'inprogress' / 'pending'  → skip POST, job already running
+ *   3. Poll GET manifest until status === 'success' or terminal failure
+ *      (first poll runs immediately; subsequent polls every 5 s)
  *   4. Return 'ready' so ApsViewer can load the document
  *
  * retry() re-runs from step 1.
@@ -66,44 +70,51 @@ export function useViewerTranslation(
       return
     }
 
+    async function pollOnce(token: string, encoded: string): Promise<'keep' | 'stop'> {
+      try {
+        const result = await getManifest(encoded, token)
+        if (cancelledRef.current) return 'stop'
+
+        if (!result) {
+          setStatus('failed')
+          setError('Translation manifest unavailable.')
+          return 'stop'
+        }
+
+        setProgress(result.progress)
+
+        if (result.status === 'success') {
+          setStatus('ready')
+          return 'stop'
+        }
+        if (result.status === 'failed' || result.status === 'timeout') {
+          setStatus('failed')
+          setError(`Translation ${result.status}.`)
+          return 'stop'
+        }
+        return 'keep'
+      } catch (err) {
+        if (cancelledRef.current) return 'stop'
+        setStatus('failed')
+        setError(err instanceof Error ? err.message : 'Polling error.')
+        return 'stop'
+      }
+    }
+
     async function startPolling(token: string, encoded: string) {
       if (cancelledRef.current) return
       setStatus('polling')
+
+      const initial = await pollOnce(token, encoded)
+      if (cancelledRef.current || initial === 'stop') return
 
       intervalRef.current = setInterval(async () => {
         if (cancelledRef.current) {
           clearPollInterval()
           return
         }
-
-        try {
-          const result = await getManifest(encoded, token)
-          if (cancelledRef.current) return
-
-          if (!result) {
-            clearPollInterval()
-            setStatus('failed')
-            setError('Translation manifest unavailable.')
-            return
-          }
-
-          setProgress(result.progress)
-
-          if (result.status === 'success') {
-            clearPollInterval()
-            setStatus('ready')
-          } else if (result.status === 'failed' || result.status === 'timeout') {
-            clearPollInterval()
-            setStatus('failed')
-            setError(`Translation ${result.status}.`)
-          }
-          // 'inprogress' | 'pending' → keep polling
-        } catch (err) {
-          if (cancelledRef.current) return
-          clearPollInterval()
-          setStatus('failed')
-          setError(err instanceof Error ? err.message : 'Polling error.')
-        }
+        const r = await pollOnce(token, encoded)
+        if (r === 'stop') clearPollInterval()
       }, 5000)
     }
 
@@ -126,11 +137,27 @@ export function useViewerTranslation(
 
         setEncodedUrn(derivativeUrn)
 
-        // Step 2: submit translation job (idempotent — safe to re-submit)
-        await triggerTranslation(derivativeUrn, token)
+        // Step 2: check manifest before POSTing — avoid re-triggering translation
+        // when a viewable already exists (the common case on repeat tab visits).
+        const existing = await getManifest(derivativeUrn, token)
         if (cancelledRef.current) return
 
-        // Step 3: poll manifest until complete
+        if (existing?.status === 'success') {
+          setProgress(existing.progress)
+          setStatus('ready')
+          return
+        }
+
+        // POST when no job exists or the prior attempt is terminally bad.
+        // Skip when 'inprogress' / 'pending' — job is already running, just poll.
+        const needsTrigger =
+          !existing || existing.status === 'failed' || existing.status === 'timeout'
+        if (needsTrigger) {
+          await triggerTranslation(derivativeUrn, token)
+          if (cancelledRef.current) return
+        }
+
+        // Step 3: poll manifest until complete (immediate first check)
         await startPolling(token, derivativeUrn)
       } catch (err) {
         if (cancelledRef.current) return
