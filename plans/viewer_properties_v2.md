@@ -474,4 +474,37 @@ Both `BomTab` and the panel call this. Saves ~60 lines of duplicated wiring. Opt
 
 ---
 
+## Follow-ups (same-day, after v2 shipped)
+
+These were small, well-scoped changes layered on top of v2. Captured here rather than spinning up separate plan files.
+
+### Collapsible Base / Physical accordion grouping
+
+After v2 shipped with a flat list of rows, the panel was visually busy. The rows are now partitioned:
+
+- **Always visible (flat rows):** Description, Part Number, Material.
+- **Base Properties accordion** (collapsible, expanded by default): every hub-defined base property column.
+- **Physical Properties accordion** (collapsible, collapsed by default): Mass, Volume, Density, Surface Area, Bounding Box.
+
+Implementation: in `ViewerPropertiesPanel.tsx`, the visible columns are partitioned into three groups by id (`ALWAYS_VISIBLE_IDS`, `PHYSICAL_IDS`, and "anything starting with `baseProp:`"). Each group renders either as a plain block (top) or wrapped in a default-uncontrolled `<Accordion>`. Accordion state is local-to-MUI and persists across component switches (only the row cells re-key — see next item).
+
+Each accordion only renders when it has ≥1 visible column, so toggling everything off via the column-settings gear collapses the section away entirely.
+
+### Editing reliability fixes
+
+After v2, two bugs surfaced when actually using the inline editor:
+
+**Bug 1 — Saved values disappeared on revisit.** Editing a description / base property looked fine immediately (optimistic UI), but clicking off and back showed the old value. Root cause: `useViewerComponent` is `cache-first`, and the auto-normalization from the mutation wasn't reliably reaching the panel's cached `Component:<id>` (id mismatch between mutation result and query result was the most likely culprit).
+
+Fix in `useComponentMutations.ts`:
+- `UPDATE_COMPONENT_DESCRIPTION` now returns `description { value displayValue }` (both fields).
+- Added an explicit `cache.modify({ id: Component:<id>, fields: { description() { return updated.description } } })` in the mutation's `update` callback — robust to id mismatches.
+- Added `refetchQueries: ['GetViewerComponent']` (description) and `refetchQueries: ['GetRootComponentBaseProperties', 'GetComponentBaseProperties']` (base properties) with `awaitRefetchQueries: true`. The mutation's `onCommit` promise now only resolves after the refetched value is in cache — no flicker between optimistic and refetched values.
+
+**Bug 2 — Edited value leaked to the next component.** Editing Description on Component A and then selecting Component B in the viewer showed *A's edited text* on B. Root cause: cell components stayed mounted across component switches (same React tree position, same key), so `EditableTextCell` / `BasePropCell` local `optimisticValue` state survived a context where it no longer made sense.
+
+Fix in two places:
+- `ViewerPropertiesPanel.tsx` — each row's React `key` now includes `bomRowForCells.componentId`. Switching to a different component changes the key → React unmounts and remounts the cell with fresh state. Accordions stay mounted (their expand/collapse state is preserved across switches).
+- `EditableTextCell.tsx` + `BasePropCell` in `componentColumns.ts` — `setOptimisticValue(null)` is now called after a successful `onCommit` (in addition to the existing error path). Belt-and-suspenders cleanup so the cell falls through to the freshly-refetched `value` / `valueMap[def.id]` instead of holding onto the local copy.
+
 *Last updated: 2026-05-29*
