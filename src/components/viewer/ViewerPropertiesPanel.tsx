@@ -87,7 +87,7 @@ function groupByCategory(
 
 function HeroThumbnail({ componentId }: { componentId: string }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
-  const { loading, error, status, signedUrl, objectUrl } = useBomThumbnail(componentId, null, 0)
+  const { loading, error, status, signedUrl, objectUrl, refetchOnce } = useBomThumbnail(componentId, null, 0)
   const isWorking = status !== null && WORKING_STATES.includes(status)
   const displayUrl = objectUrl ?? signedUrl
 
@@ -119,6 +119,9 @@ function HeroThumbnail({ componentId }: { componentId: string }) {
         style={{ objectFit: 'cover', borderRadius: 4 }}
         onMouseEnter={(e) => setAnchorEl(e.currentTarget)}
         onMouseLeave={() => setAnchorEl(null)}
+        onError={() => {
+          if (displayUrl === signedUrl) refetchOnce()
+        }}
       />
       <Popover
         open={Boolean(anchorEl)}

@@ -464,4 +464,30 @@ Fusion add-ins can't be unit-tested in CI without the host app, so testing is la
 
 ---
 
+## UI refinements (2026-06-01, post-implementation)
+
+After the first working build, three palette UI tweaks (from user review):
+
+1. **Sticky-note cards.** Each note renders as a warm pale-yellow "sticky note"
+   (vertical gradient `--sticky-bg`→`--sticky-bg-bottom`, near-square 3px corners)
+   with a soft drop shadow, so notes read as separate physical objects. List gap
+   widened to 12px to give the shadows room.
+2. **Author · time separator.** The meta row was missing any separator between
+   author and timestamp; added a `·` via `.card-time::before`. Actions
+   (edit/delete) are pushed right with `margin-left:auto`.
+3. **Header = "Name · N notes".** The header now shows the component name (no
+   `On:` prefix) plus a live note count: single component → `Top Lid · 3 notes`;
+   multi-select → `3 components · 7 notes` (full names on hover); assembly →
+   `<RootName> · 7 notes`. The count is filled in after the fetch resolves
+   (`renderHeader(count)`); the name shows immediately during loading. The
+   per-card `On: <componentName>` sub-label (multi/assembly scope) is unchanged.
+
+**Build note:** the original CSS (written by a different agent than `app.js`)
+used class names (`.note-card`, `.author`, `.time`, `.body`, `.empty`) that did
+**not** match the markup `app.js` emits (`.card`, `.card-author`, `.card-time`,
+`.card-body`, `.list-empty`) — so cards were effectively unstyled. The CSS was
+realigned to app.js's classes as part of this pass.
+
+---
+
 *Last updated: 2026-06-01*

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { GET_ROOT_COMPONENT_THUMBNAIL, GET_COMPONENT_THUMBNAIL } from '../graphql/queries/thumbnail'
 import { getThumbnailBlob, setThumbnailBlob } from '../services/thumbnailImageCache'
@@ -21,6 +21,7 @@ export function useBomThumbnail(
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
   const objectUrlRef = useRef<string | null>(null)
   const fetchedRef = useRef(false)
+  const refetchedOnceRef = useRef(false)
   const isRoot = componentState === null
 
   // Step 1: Check IndexedDB on mount and revoke objectUrl on unmount.
@@ -31,6 +32,7 @@ export function useBomThumbnail(
     let cancelled = false
     setObjectUrl(null)
     fetchedRef.current = false
+    refetchedOnceRef.current = false
 
     getThumbnailBlob(componentId).then(blob => {
       if (blob && !cancelled) {
@@ -125,5 +127,16 @@ export function useBomThumbnail(
       })
   }, [signedUrl, componentId, objectUrl])
 
-  return { loading, error, status, signedUrl, objectUrl }
+  // Refetch the GraphQL query for a fresh signedUrl, but only once per
+  // componentId mount. Called by cells when their <img> onError fires —
+  // the only reliable signal that the signedUrl is genuinely bad (vs
+  // CORS-blocked but valid, which is indistinguishable from the JS fetch
+  // perspective).
+  const refetchOnce = useCallback(() => {
+    if (refetchedOnceRef.current) return
+    refetchedOnceRef.current = true
+    refetch().catch(() => {/* ignore */})
+  }, [refetch])
+
+  return { loading, error, status, signedUrl, objectUrl, refetchOnce }
 }

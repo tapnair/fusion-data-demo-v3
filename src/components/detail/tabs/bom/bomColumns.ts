@@ -35,7 +35,7 @@ export type BomColumnDef = ComponentColumnDef<BomRow, BomCellContext>
 
 function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thumbnailGeneration: number }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
-  const { loading, error, status, signedUrl, objectUrl } = useBomThumbnail(row.componentId, row.componentState, thumbnailGeneration)
+  const { loading, error, status, signedUrl, objectUrl, refetchOnce } = useBomThumbnail(row.componentId, row.componentState, thumbnailGeneration)
   const isWorking = status !== null && WORKING_STATES.includes(status)
   // Use cached blob URL when available; fall back to signedUrl directly for <img> tags
   // (fetch() is blocked by CORS on some hosts but <img src> is not).
@@ -64,6 +64,9 @@ function BomThumbnailCellInner({ row, thumbnailGeneration }: { row: BomRow; thum
       style: { objectFit: 'cover' as const, borderRadius: 4 },
       onMouseEnter: (e: React.MouseEvent<HTMLImageElement>) => setAnchorEl(e.currentTarget),
       onMouseLeave: () => setAnchorEl(null),
+      onError: () => {
+        if (displayUrl === signedUrl) refetchOnce()
+      },
     }),
     React.createElement(
       Popover,
