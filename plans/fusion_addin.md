@@ -2,6 +2,22 @@
 
 *Plan created: 2026-06-01*
 
+> **⚠️ Key migration (2026-06-01, post-implementation).** This plan was written when
+> notes were keyed on a single `modelId` (`mfgdmModelId`). The notes backend has since
+> migrated to a **composite Fusion identity** — `componentLineageUrn` + `componentF3dId`
+> (and `rootLineageUrn` for assembly scope) — because `modelId` proved transient. The
+> add-in was reworked to match. Wherever this doc says `modelId` / `rootModelId` /
+> `mfgdmModelId` / `model_id_of()`, the implementation now uses:
+> - `f3dId` = `Component.id` (persistent, offline-available) → `selection.f3d_id_of()`
+> - `lineageUrn` = `Component.parentDesign.parentDocument.dataFile.id` → `selection.lineage_urn_of()`
+> - root lineage = `app.activeDocument.dataFile.id`
+> - payload: `{rootLineageUrn, rootF3dId, rootName, components:[{lineageUrn,f3dId,name}], …}`
+> - dedup is by the `(lineageUrn, f3dId)` pair; the warning case is "no lineage URN yet"
+>   (file unsaved / not synced to A360), not "no mfgdmModelId".
+>
+> See `notes_integration.md` (memory) and `fusion-erp-api` commit `128d13d` for the
+> backend contract. The sections below are kept as the original design narrative.
+
 ## Goal
 
 Build an Autodesk Fusion add-in (Python) that is a **second client** for the notes
