@@ -23,8 +23,11 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeBlob(content = 'test image data'): Blob {
-  return new Blob([content], { type: 'image/png' })
+// Pads to >=200 bytes so the blob passes getThumbnailBlob's size validation.
+// The first chars carry the test-distinguishing content; the rest is filler.
+function makeBlob(distinctContent = 'test image data'): Blob {
+  const padding = 'x'.repeat(Math.max(0, 250 - distinctContent.length))
+  return new Blob([distinctContent + padding], { type: 'image/png' })
 }
 
 /**
@@ -62,6 +65,23 @@ describe('getThumbnailBlob', () => {
     expect(result).toBeInstanceOf(Blob)
     expect(await blobText(result!)).toBe(await blobText(blob))
   })
+
+  it('rejects (and deletes) a tiny blob from a previously-cached bad response', async () => {
+    const tinyBlob = new Blob(['oops'], { type: 'image/png' })
+    await setThumbnailBlob('comp-bad', tinyBlob)
+    const result = await getThumbnailBlob('comp-bad')
+    expect(result).toBeNull()
+    // confirm the bad entry was evicted (a second get should still return null)
+    const result2 = await getThumbnailBlob('comp-bad')
+    expect(result2).toBeNull()
+  })
+
+  it('rejects (and deletes) a blob whose MIME type is not image/*', async () => {
+    const htmlBlob = new Blob(['x'.repeat(500)], { type: 'text/html' })
+    await setThumbnailBlob('comp-html', htmlBlob)
+    const result = await getThumbnailBlob('comp-html')
+    expect(result).toBeNull()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -87,8 +107,8 @@ describe('setThumbnailBlob', () => {
 
     const result = await getThumbnailBlob('comp-overwrite')
     expect(result).toBeInstanceOf(Blob)
-    expect(await blobText(result!)).toBe('second')
-    expect(await blobText(result!)).not.toBe('first')
+    expect(await blobText(result!)).toBe(await blobText(secondBlob))
+    expect(await blobText(result!)).not.toBe(await blobText(firstBlob))
   })
 })
 
@@ -166,7 +186,7 @@ describe('evictStaleEntries', () => {
 
     const freshResult = await getThumbnailBlob('comp-will-be-fresh')
     expect(freshResult).toBeInstanceOf(Blob)
-    expect(await blobText(freshResult!)).toBe('fresh')
+    expect(await blobText(freshResult!)).toBe(await blobText(freshBlob))
   })
 })
 

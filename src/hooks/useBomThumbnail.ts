@@ -23,9 +23,15 @@ export function useBomThumbnail(
   const fetchedRef = useRef(false)
   const isRoot = componentState === null
 
-  // Step 1: Check IndexedDB on mount and revoke objectUrl on unmount
+  // Step 1: Check IndexedDB on mount and revoke objectUrl on unmount.
+  // Also resets transient state whenever the componentId changes so we never
+  // render a revoked blob URL from a previous component, and so the signedUrl
+  // fetch can re-fire for the new component.
   useEffect(() => {
     let cancelled = false
+    setObjectUrl(null)
+    fetchedRef.current = false
+
     getThumbnailBlob(componentId).then(blob => {
       if (blob && !cancelled) {
         const url = URL.createObjectURL(blob)
@@ -88,15 +94,24 @@ export function useBomThumbnail(
   const status: string | null = thumbnail?.status ?? null
   const signedUrl: string | null = thumbnail?.signedUrl ?? null
 
-  // Step 3: Fetch blob when signedUrl is available and we don't already have a cached blob.
-  // On CORS failure (e.g. GitHub Pages), reset fetchedRef so refresh can retry,
-  // and let the cell fall back to rendering <img src={signedUrl}> directly.
+  // Step 3: Fetch blob when signedUrl is available and we don't already have a
+  // cached blob. On CORS failure (e.g. GitHub Pages or local dev — APS doesn't
+  // send Access-Control-Allow-Origin), `fetch` rejects; we leave objectUrl null
+  // so the cell falls back to `<img src={signedUrl}>` which DOES render across
+  // origins. We still validate status + blob type so we never cache a 4xx HTML
+  // body or other non-image content under the componentId.
   useEffect(() => {
     if (!signedUrl || objectUrl || fetchedRef.current) return
     fetchedRef.current = true
     fetch(signedUrl)
-      .then(r => r.blob())
+      .then(r => {
+        if (!r.ok) throw new Error(`thumbnail fetch ${r.status}`)
+        return r.blob()
+      })
       .then(blob => {
+        if (!blob.type.startsWith('image/') || blob.size < 200) {
+          throw new Error('thumbnail response is not an image')
+        }
         setThumbnailBlob(componentId, blob).catch(console.error)
         const url = URL.createObjectURL(blob)
         if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
@@ -104,7 +119,8 @@ export function useBomThumbnail(
         setObjectUrl(url)
       })
       .catch(() => {
-        // Reset so a manual refresh can retry; cell will fall back to signedUrl directly.
+        // CORS or genuine 4xx — leave objectUrl null; the cell falls back to
+        // rendering the signedUrl directly via <img>, which works across CORS.
         fetchedRef.current = false
       })
   }, [signedUrl, componentId, objectUrl])

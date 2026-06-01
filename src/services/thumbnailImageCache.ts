@@ -21,7 +21,14 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
 export async function getThumbnailBlob(componentId: string): Promise<Blob | null> {
   const db = await dbPromise
   const entry = await db.get(STORE_NAME, componentId) as ThumbnailCacheEntry | undefined
-  return entry?.blob ?? null
+  if (!entry) return null
+  // Reject obviously invalid blobs (e.g. tiny HTML 403 responses cached before
+  // the response-status check was added). They'd render as broken images.
+  if (entry.blob.size < 200 || !entry.blob.type.startsWith('image/')) {
+    await db.delete(STORE_NAME, componentId)
+    return null
+  }
+  return entry.blob
 }
 
 export async function setThumbnailBlob(componentId: string, blob: Blob): Promise<void> {
