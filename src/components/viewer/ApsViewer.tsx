@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
 import { Box, Backdrop, CircularProgress, Typography } from '@mui/material'
 import { useApsViewer } from '../../hooks/useApsViewer'
 import { useViewerSelection } from '../../hooks/useViewerSelection'
@@ -14,15 +14,7 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }: ApsViewerProp
   const containerRef = useRef<HTMLDivElement>(null)
   const { viewerLoaded, viewerError, viewerRef, viewerInitialized } =
     useApsViewer(containerRef, encodedUrn, isReady, getAccessToken)
-  const { selection, selectByDbId } = useViewerSelection(viewerRef, viewerInitialized)
-
-  // Resize the WebGL canvas after the panel slide transition completes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      viewerRef.current?.resize()
-    }, 320)
-    return () => clearTimeout(timer)
-  }, [selection, viewerRef])
+  const { selection, rootSelection, selectByDbId } = useViewerSelection(viewerRef, viewerInitialized)
 
   return (
     <Box sx={{ display: 'flex', height: '100%', width: '100%', overflow: 'hidden' }}>
@@ -58,17 +50,17 @@ export function ApsViewer({ encodedUrn, isReady, getAccessToken }: ApsViewerProp
         )}
       </Box>
 
-      {/* Sliding properties panel wrapper */}
+      {/* Always-visible properties panel wrapper */}
       <Box
         sx={{
-          width: selection ? 380 : 0,
+          width: 380,
           overflow: 'hidden',
-          transition: 'width 300ms ease',
           flexShrink: 0,
         }}
       >
         <ViewerPropertiesPanel
           selection={selection}
+          rootSelection={rootSelection}
           onClose={() => viewerRef.current?.clearSelection()}
           onSelectDbId={selectByDbId}
         />

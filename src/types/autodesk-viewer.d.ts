@@ -36,6 +36,7 @@ declare namespace Autodesk {
       getNodeName(dbId: number): string
       getNodeParentId(dbId: number): number
       getChildCount(dbId: number): number
+      enumNodeChildren(dbId: number, callback: (childDbId: number) => void, recursive?: boolean): void
     }
 
     interface ModelData {

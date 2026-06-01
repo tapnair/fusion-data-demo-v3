@@ -20,6 +20,7 @@ import {
   Tab,
 } from '@mui/material'
 import { ErpTab } from './ErpTab'
+import { NotesTab } from './NotesTab'
 import CloseIcon from '@mui/icons-material/Close'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import VisibilityIcon from '@mui/icons-material/Visibility'
@@ -46,6 +47,7 @@ const PHYSICAL_IDS = ['mass', 'volume', 'density', 'area', 'boundingBox']
 
 interface ViewerPropertiesPanelProps {
   selection: ViewerSelection | null
+  rootSelection: ViewerSelection | null
   onClose: () => void
   onSelectDbId: (dbId: number) => void
 }
@@ -219,25 +221,24 @@ function PropertyAccordions({
 
 export function ViewerPropertiesPanel({
   selection,
+  rootSelection,
   onClose,
   onSelectDbId,
 }: ViewerPropertiesPanelProps) {
+  const effective = selection ?? rootSelection
+
   const [showHidden, setShowHidden] = useState(false)
   const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null)
-  const [tab, setTab] = useState<'properties' | 'erp'>('properties')
+  const [tab, setTab] = useState<'properties' | 'erp' | 'notes'>('properties')
 
   useEffect(() => {
     setShowHidden(false)
-  }, [selection])
-
-  useEffect(() => {
-    setTab('properties')
-  }, [selection?.componentDbId])
+  }, [effective])
 
   const { activeHubId } = useActiveHub()
   const { definitions: basePropertyDefs } = useHubBasePropertyDefinitions(activeHubId)
 
-  const modelId = selection?.modelId ?? null
+  const modelId = effective?.modelId ?? null
   const { row, loading: rowLoading } = useViewerComponent(modelId)
   const { setDescription, setBaseProperty, saveError, clearSaveError } = useComponentMutations()
 
@@ -300,7 +301,7 @@ export function ViewerPropertiesPanel({
   }, [row])
 
   const renderHeader = useCallback(
-    (opts: { showVisibility: boolean; showColumns: boolean }) => (
+    (opts: { showVisibility: boolean; showColumns: boolean; showClose: boolean }) => (
       <Box
         sx={{
           px: 2,
@@ -315,7 +316,7 @@ export function ViewerPropertiesPanel({
           variant="subtitle2"
           sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
-          {selection?.componentName ?? ''}
+          {effective?.componentName ?? ''}
         </Typography>
 
         {opts.showVisibility && (
@@ -342,15 +343,17 @@ export function ViewerPropertiesPanel({
           </Tooltip>
         )}
 
-        <IconButton size="small" onClick={onClose} aria-label="Close properties panel">
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        {opts.showClose && (
+          <IconButton size="small" onClick={onClose} aria-label="Close properties panel">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
     ),
-    [selection?.componentName, showHidden, onClose]
+    [effective?.componentName, showHidden, onClose]
   )
 
-  if (!selection) {
+  if (!effective) {
     return (
       <Box
         sx={{
@@ -362,13 +365,17 @@ export function ViewerPropertiesPanel({
           borderColor: 'divider',
           bgcolor: 'background.paper',
           overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
-      />
+      >
+        <CircularProgress size={24} />
+      </Box>
     )
   }
 
-  const isFallback = selection.modelId === null
-  const hasRawAccordion = isFallback || selection.body !== null
+  const isFallback = effective.modelId === null
+  const hasRawAccordion = isFallback || effective.body !== null
 
   return (
     <Box
@@ -383,7 +390,11 @@ export function ViewerPropertiesPanel({
         overflow: 'hidden',
       }}
     >
-      {renderHeader({ showVisibility: hasRawAccordion, showColumns: !isFallback })}
+      {renderHeader({
+        showVisibility: hasRawAccordion,
+        showColumns: !isFallback,
+        showClose: selection !== null,
+      })}
 
       <Box
         sx={{
@@ -397,8 +408,8 @@ export function ViewerPropertiesPanel({
           rowGap: 0.25,
         }}
       >
-        {selection.hierarchyPath.map((node, i) => {
-          const isLast = i === selection.hierarchyPath.length - 1
+        {effective.hierarchyPath.map((node, i) => {
+          const isLast = i === effective.hierarchyPath.length - 1
           return (
             <Fragment key={`${node.dbId}-${i}`}>
               {i > 0 && (
@@ -436,6 +447,7 @@ export function ViewerPropertiesPanel({
         >
           <Tab label="Properties" value="properties" sx={{ minHeight: 36, py: 0 }} />
           <Tab label="ERP" value="erp" sx={{ minHeight: 36, py: 0 }} />
+          <Tab label="Notes" value="notes" sx={{ minHeight: 36, py: 0 }} />
         </Tabs>
       )}
 
@@ -443,7 +455,9 @@ export function ViewerPropertiesPanel({
 
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
         {!isFallback && tab === 'erp' ? (
-          <ErpTab modelId={selection.modelId} />
+          <ErpTab modelId={effective.modelId} />
+        ) : !isFallback && tab === 'notes' ? (
+          <NotesTab effective={effective} rootSelection={rootSelection!} />
         ) : isFallback ? (
           <>
             <Alert severity="info" sx={{ m: 1 }}>
@@ -456,12 +470,12 @@ export function ViewerPropertiesPanel({
               COMPONENT
             </Typography>
             <PropertyAccordions
-              properties={selection.componentProperties}
+              properties={effective.componentProperties}
               keyPrefix="component"
               showHidden={showHidden}
               defaultExpanded
             />
-            {selection.body !== null && (
+            {effective.body !== null && (
               <>
                 <Divider sx={{ my: 1 }} />
                 <Typography
@@ -471,7 +485,7 @@ export function ViewerPropertiesPanel({
                   BODY
                 </Typography>
                 <PropertyAccordions
-                  properties={selection.body.properties}
+                  properties={effective.body.properties}
                   keyPrefix="body"
                   showHidden={showHidden}
                   defaultExpanded
@@ -581,7 +595,7 @@ export function ViewerPropertiesPanel({
               )
             })()}
 
-            {selection.body !== null && (
+            {effective.body !== null && (
               <>
                 <Divider />
                 <Accordion
@@ -599,7 +613,7 @@ export function ViewerPropertiesPanel({
                   </AccordionSummary>
                   <AccordionDetails sx={{ p: 0 }}>
                     <PropertyAccordions
-                      properties={selection.body.properties}
+                      properties={effective.body.properties}
                       keyPrefix="body"
                       showHidden={showHidden}
                       defaultExpanded={false}

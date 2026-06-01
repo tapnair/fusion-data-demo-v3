@@ -2123,4 +2123,102 @@ Updated this file with all prompts from this session.
 
 ---
 
+```
+still not working. If I paste in a link from another tab, I am asked to authenticate and then I just end up on the dashboard. If I paste the link again after logging in, I get the hub to expand, but not the project or folder and then the item is not selected. Should the URL have more information in it to account for full path?
+```
+Diagnosed two deep-link bugs: (1) auth redirect race — `AuthCallback` used `navigate()` which fired before `setIsAuthenticated(true)` flushed, causing ProtectedRoute to re-save and overwrite the stored URL. Fixed with `window.location.replace()` for a hard reload post-OAuth. (2) Tree expansion stopped at hub — `GET_ITEM_DETAIL` returns null for `project`/`parentFolder` when called with a lineage URN, so ancestor chain was incomplete. Fixed by encoding `projectId` and `folderId` (parentFolderId) into the URL so `useDeepLinkExpansion` reads them from the stub directly and skips the failing API call. Also added a second `useEffect` in `NavTree` depending on `[hubNodes]` to retry `loadChildren` for already-expanded nodes when the hub list loads after deep-link expansion was set up. Updated `plans/navigation.md` with bug-fix notes.
+
+---
+
+```
+I'll let the other agent work on navigation for now. What was the other un-implemented change that needed to be done?
+```
+Identified thumbnail image caching as the remaining unimplemented feature (from `plans/image_cache.md`).
+
+---
+
+```
+yes start working on thumbnail cache. Use as many agents as is feasible for the task
+```
+Implemented IndexedDB-based thumbnail caching. `useBomThumbnail` now checks IndexedDB on mount (`getThumbnailBlob`), fetches the signed URL response and stores the blob if not cached, creates a `blob:` objectUrl via `URL.createObjectURL`, and revokes it on unmount. `bomColumns.ts` updated to use `objectUrl` instead of `signedUrl` directly. Used `objectUrlRef` to track current URL for cleanup across both the mount and signedUrl effects. `fetchedRef` prevents double-fetch in StrictMode.
+
+---
+
+```
+can you update the relevant plans/ document with what ever fixes were needed?
+```
+Updated `plans/image_cache.md` with `## Status: ✅ FULLY IMPLEMENTED (2026-04-11)` and an implementation notes section. Updated `plans/navigation.md` with `## Status: ✅ IMPLEMENTED — with bug fixes applied (2026-04-11)` and a "Bug Fixes & Deviations" section documenting all 4 fixes.
+
+---
+
+```
+we had to updated ci file because of legacy dependancies, are all the libraries I am using current and compatible. Any recomendations on changing any of the project dpendencies?
+```
+Audited all dependencies. Found `apollo3-cache-persist@0.15.0` declares peer `@apollo/client@^3.7.17` incompatible with the project's v4. Also found `rxjs` and `axios` with zero imports in `src/`. Recommended: remove all three packages, replace `apollo3-cache-persist` with a custom persistor, revert CI to plain `npm ci`.
+
+---
+
+```
+yes do it
+```
+Replaced `apollo3-cache-persist` with a custom `src/apollo/cachePersistor.ts` that intercepts `cache.broadcastWatches`, debounces writes at 1s, applies a `persistenceMapper`, and enforces a 5 MB cap. Removed `rxjs` and `axios`. Ran `npm audit fix` — 0 vulnerabilities remaining. Reverted `deploy.yml` from `npm ci --legacy-peer-deps` back to `npm ci`. 22 packages removed total.
+
+---
+
+```
+is there a way to validate the cache persistence behavior is still working?
+```
+Created `src/apollo/cachePersistor.test.ts` with 12 tests covering: `restore()` happy path / empty storage / corrupted data; `purge()` removes key and cancels pending timer; `broadcastWatches` triggers after 1s debounce, multiple calls coalesced, original still invoked; `persistenceMapper` applied before write; Thumbnail keys excluded by the app mapper; 5 MB cap enforced.
+
+---
+
+```
+look through the project and see if there are any more tests that should be added. refer to plans/testing.md for what was the plan.
+```
+Used an Explore agent to audit all existing tests against `plans/testing.md`. Found 6 missing test suites; identified 4 high-value ones implementable immediately. Exported `formatExtensionType` and `formatBytes` from `ContentsTab.tsx` to enable unit testing. Launched 4 parallel background agents to write: `componentColumns.test.ts` (47 tests — `formatDisplayValue`, `UNIT_ABBREVIATIONS`), `ContentsTab.test.ts` (28 tests — `formatBytes`, `formatExtensionType`), `useBomBaseProperties.test.tsx` (8 tests), `useHubBasePropertyDefinitions.test.tsx` (11 tests). Added `import 'fake-indexeddb/auto'` to `src/test/setup.ts` to fix pre-existing `indexedDB is not defined` failures. Final result: 259 tests across 14 files, all passing.
+
+---
+
+```
+update the prompt_history document with any new prompts from this session
+```
+Updated this file with all prompts from this session.
+
+---
+
 *Generated: 2026-04-11*
+
+---
+
+```
+this is working great now. Except when it scrolls to the item it is positioned right at the bottom of the nav tree frame. Could it overscroll so that the selected item is about 30% of the way from the top of the visible nav tree frame. Is that feasible?
+```
+Replaced `scrollIntoView` with manual scroll math. Added `id="nav-tree-scroll-container"` to the scrollable `Box` in `NavDrawer`. In `NavTree`'s scroll effect, computes `targetOffset = elTop - containerTop - containerHeight * 0.3` and calls `container.scrollBy({ top: targetOffset, behavior: 'smooth' })`. Also switched retry timing from fixed 100ms to exponential backoff (`100 * 2^attempts`, up to 10 retries) to handle slow folder expansion responses.
+
+---
+
+```
+it might be slower than that, lets use an exponential rolloff for the timing.
+```
+Updated retry delays to use `100 * Math.pow(2, attempts++)` — sequence goes 100ms, 200ms, 400ms ... up to ~51s on the 10th attempt, covering even very slow API responses.
+
+---
+
+```
+we are going to work on the columns in the search results table now. I want a column that shows the parent folder name and the parent project name. If the text in these columns is selected, the tree should navigate to the respective project or folder. i dont need the path column to be displayed
+```
+Added Parent Folder and Parent Project columns to the search results table. Extended the GQL query to fetch `parentFolder { id name }` and `project { id name }` for all result types (Component, Folder, Model, DesignItem, DrawingItem, BasicItem, ConfiguredDesignItem). Added `parentFolderName` and `parentProjectName` to `SearchRow` and mapped them in `useComponentSearch`. Columns render as MUI `Link` buttons that `stopPropagation` on click, then call `setSelectedNode` with `needsTreeExpansion: true` and `closeSearch()`. Removed `path` from default visible columns.
+
+---
+
+```
+the column selections in the results table should be persisted. Probably saved in some local cache and read everytime the table is displayed.
+```
+Added `localStorage` persistence for search column visibility. `loadColumnVisibility()` reads and JSON-parses from `'search-column-visibility'` key on init (falls back to defaults on missing/corrupt data). `saveColumnVisibility()` writes the updated set on every toggle. `useState` uses the lazy initializer form `useState(loadColumnVisibility)` so it only reads storage once on mount.
+
+---
+
+```
+update the prompt_history document with any new prompts from this session
+```
+Updated this file with all prompts from this session.

@@ -25,6 +25,8 @@ export interface ViewerSelection {
   componentName: string
   componentProperties: ViewerProperty[]
   modelId: string | null
+  componentLineageUrn: string | null
+  componentF3dId: string | null
 
   body: ViewerBody | null
 
