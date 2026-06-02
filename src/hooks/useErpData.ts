@@ -8,13 +8,18 @@ export interface UseErpDataResult {
   material: ErpMaterial | null
 }
 
-type CacheEntry = { material: ErpMaterial | null }
-const cache = new Map<string, CacheEntry>()
+// No-op kept for test-surface compatibility. The hook intentionally has no
+// cache — see useErpData below.
+export function clearErpCache() {}
 
-export function clearErpCache() {
-  cache.clear()
-}
-
+/**
+ * Fetches ERP material data by modelId.
+ *
+ * **No cache, by design.** This is a demo; ERP records are editable from the
+ * external admin UI (`fusion-erp-api`), and the user expects every selection
+ * change to reflect the latest server state. Network cost on each pick is
+ * acceptable.
+ */
 export function useErpData(modelId: string | null): UseErpDataResult {
   const { getAccessToken } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -32,14 +37,6 @@ export function useErpData(modelId: string | null): UseErpDataResult {
       return
     }
 
-    const cached = cache.get(modelId)
-    if (cached) {
-      setLoading(false)
-      setError(null)
-      setMaterial(cached.material)
-      return
-    }
-
     const controller = new AbortController()
     abortRef.current = controller
     setLoading(true)
@@ -52,7 +49,6 @@ export function useErpData(modelId: string | null): UseErpDataResult {
         if (controller.signal.aborted) return
         const result = await fetchErpMaterial(modelId, token, controller.signal)
         if (controller.signal.aborted) return
-        cache.set(modelId, { material: result })
         setMaterial(result)
         setLoading(false)
       } catch (err) {

@@ -97,7 +97,7 @@ describe('useErpData', () => {
     expect(result.current.material).toBeNull()
   })
 
-  test('serves cached material without refetching on a second hook instance', async () => {
+  test('always refetches — never serves from a hook-level cache (by design)', async () => {
     const material = makeMaterial({ modelId: 'x' })
     mockFetchErpMaterial.mockResolvedValue(material)
 
@@ -107,10 +107,9 @@ describe('useErpData', () => {
     expect(mockFetchErpMaterial).toHaveBeenCalledTimes(1)
 
     const second = renderHook(() => useErpData('x'), { wrapper })
-    expect(second.result.current.loading).toBe(false)
+    await waitFor(() => expect(second.result.current.loading).toBe(false))
     expect(second.result.current.material).toEqual(material)
-    expect(second.result.current.error).toBeNull()
-    expect(mockFetchErpMaterial).toHaveBeenCalledTimes(1)
+    expect(mockFetchErpMaterial).toHaveBeenCalledTimes(2)
   })
 
   test('refetches when modelId changes', async () => {
