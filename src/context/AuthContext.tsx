@@ -6,7 +6,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { AuthService } from '../services/auth/authService'
 import { TokenManager } from '../services/auth/tokenManager'
-import { fetchUserInfo } from '../services/auth/userInfoService'
+import { fetchUserInfo, UserInfoError } from '../services/auth/userInfoService'
 import { User } from '../types/auth.types'
 import type { CachePersistorLike } from '../apollo/cachePersistor'
 import { clearThumbnailCache } from '../services/thumbnailImageCache'
@@ -61,11 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAccessToken(token)
           setIsAuthenticated(true)
           setUser(userInfo)
-        } catch {
-          // Token is stale or missing required scopes — clear it so the
-          // user re-authenticates with the correct scopes on next login.
-          TokenManager.clearToken()
-          // Leave isAuthenticated: false — ProtectedRoute redirects to home.
+        } catch (err) {
+          if (err instanceof UserInfoError && err.status !== 401) {
+            // The token itself is still valid — /userinfo just won't tell us who
+            // the user is (e.g. 403 when the token lacks the `openid` scope).
+            // Discarding the token here would bounce the user straight back to
+            // login and loop forever, so stay authenticated with a placeholder.
+            setAccessToken(token)
+            setIsAuthenticated(true)
+            setUser({ id: 'user', name: 'Autodesk User' })
+          } else {
+            // 401 (or a network failure): the token is stale. Clear it so the
+            // user re-authenticates on next login.
+            TokenManager.clearToken()
+            // Leave isAuthenticated: false — ProtectedRoute redirects to home.
+          }
         }
       }
       setLoading(false)
