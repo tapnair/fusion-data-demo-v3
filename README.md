@@ -305,6 +305,8 @@ The mock ERP and Notes features are demo data and their endpoints are unauthenti
 
 The app auto-deploys to GitHub Pages on every push to `main` via `.github/workflows/deploy.yml`. The workflow installs with `npm ci`, runs the test suite and coverage, builds, and publishes `dist/` to the `gh-pages` branch using the `VITE_CLIENT_ID` repository secret. All other `VITE_*` values come from `.env.production`.
 
+Docs-only pushes are skipped — the workflow ignores `**.md`, `plans/**`, and `presentation/**`, since changes confined to those produce an identical bundle. A commit touching any of them *alongside* source still builds as normal. To force a republish without a source change, run the workflow manually from the Actions tab (`workflow_dispatch`).
+
 To deploy manually:
 
 ```bash
