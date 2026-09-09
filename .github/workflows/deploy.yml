@@ -3,6 +3,13 @@ on:
   push:
     branches:
       - main  # triggers deploy when you push to main
+    paths-ignore:
+      # Docs-only pushes produce a byte-identical bundle, so skip the deploy.
+      # A push touching any of these *plus* real source still builds normally.
+      - '**.md'
+      - 'plans/**'
+      - 'presentation/**'
+  workflow_dispatch:  # allows a manual deploy from the Actions tab
 permissions:
   contents: write  # allow GH Actions to push to gh-pages branch
 jobs:
